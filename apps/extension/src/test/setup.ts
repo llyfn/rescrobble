@@ -11,6 +11,7 @@ afterEach(() => {
   cleanup();
   server.resetHandlers();
   sessionStorage.clear();
+  window.history.replaceState(null, "", "/");
   resetLastFmReader();
 });
 afterAll(() => server.close());
