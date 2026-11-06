@@ -23,5 +23,6 @@
 .tracks .t { min-width: 0; overflow-wrap: anywhere; }
 .tracks .at { font-weight: 600; text-align: right; }
 .tracks .est { text-decoration: none; font: var(--rs-text-small); }
+.tracks .sent { grid-column: 3 / -1; }
 .tracks .skipped .t { color: var(--rs-ink-3); text-decoration: line-through; text-decoration-thickness: 1px; }
 .total { display: flex; justify-content: space-between; gap: var(--rs-space-3); font: var(--rs-text-small); color: var(--rs-ink-2); }

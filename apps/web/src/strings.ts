@@ -42,6 +42,7 @@ export const strings = {
     summary: (ticked: number, total: number, length: string) => `${ticked} of ${total} tracks · ${length}`,
     submit: (count: number) => (count === 1 ? "Scrobble 1 track" : `Scrobble ${count} tracks`),
     noneTicked: "Tick at least one track.",
+    sent: "Sent",
     tooOld: (count: number) => count === 1 ? "The first track would be more than 14 days ago." : `The first ${count} tracks would be more than 14 days ago.`,
     inFuture: (count: number) => count === 1 ? "The last track would be in the future." : `The last ${count} tracks would be in the future.`,
     noTracklist: "Last.fm has no tracklist for this album.",

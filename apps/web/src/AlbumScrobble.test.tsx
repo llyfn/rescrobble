@@ -199,6 +199,35 @@ describe("scrobbling the album", () => {
     expect(requests[1]?.[0]?.track).toBe("Part 51");
   });
 
+  it("after a failure partway through, a retry sends only the tracks that didn't go through", async () => {
+    lastFmAlbum("Box", "Set", Array.from({ length: 51 }, (_, i) => ({ name: `Part ${i + 1}`, duration: 60 })));
+    const requests: { track: string; timestamp: number }[][] = [];
+    let failNext = false;
+    server.use(http.post("/api/scrobbles", async ({ request }) => {
+      const body = await request.json() as { scrobbles: { artist: string; track: string; timestamp: number }[] };
+      requests.push(body.scrobbles);
+      if (failNext) {
+        failNext = false;
+        return HttpResponse.json({ error: "lastFmUnavailable" }, { status: 503 });
+      }
+      failNext = requests.length === 1;
+      return HttpResponse.json({ results: body.scrobbles.map((e) => ({ status: "accepted", artist: e.artist, artistCorrected: false, track: e.track, trackCorrected: false })) });
+    }));
+    const { user } = await openAlbumTab();
+    await findAlbum(user, "Box", "Set");
+
+    await user.click(await screen.findByRole("button", { name: "Scrobble 51 tracks" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Last.fm isn't responding.");
+    const timeOfLast = requests[1]?.[0]?.timestamp;
+    expect(screen.getByRole("checkbox", { name: "Include Part 1" })).toBeDisabled();
+    expect(screen.getAllByText("Sent", { selector: ".sent" })).toHaveLength(50);
+
+    await user.click(screen.getByRole("button", { name: "Scrobble 1 track" }));
+
+    await waitFor(() => expect(requests).toHaveLength(3));
+    expect(requests[2]).toEqual([expect.objectContaining({ track: "Part 51", timestamp: timeOfLast })]);
+  });
+
   it("refuses a start that puts tracks more than 14 days back, then accepts the boundary", async () => {
     lastFmAlbum("Radiohead", "OK Computer", radiohead);
     const requests = scrobbleEndpoint();

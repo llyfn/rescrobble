@@ -13,6 +13,8 @@ const a = strings.album;
 interface Loaded {
   album: Album;
   included: boolean[];
+  /** Tracks that already reached Last.fm in an earlier, partly failed submission. They keep their time slot. */
+  sent: boolean[];
   startedAt: string;
 }
 
@@ -59,7 +61,7 @@ export function AlbumForm({ onResults }: { onResults: (entries: ScrobbleEntry[],
     if (!album) return setLookupNotice(a.notFound);
     if (album.tracks.length === 0) return setLookupNotice(a.noTracklist);
     const included = album.tracks.map(() => true);
-    setLoaded({ album, included, startedAt: defaultStart(album, included) });
+    setLoaded({ album, included, sent: album.tracks.map(() => false), startedAt: defaultStart(album, included) });
   }
 
   const timing = useMemo(() => {
@@ -70,13 +72,14 @@ export function AlbumForm({ onResults }: { onResults: (entries: ScrobbleEntry[],
   }, [loaded]);
 
   const tickedCount = loaded ? loaded.included.filter(Boolean).length : 0;
+  const toSendCount = loaded ? loaded.included.filter((on, i) => on && !loaded.sent[i]).length : 0;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!loaded) return load(artist, albumName);
     if (submitting.current || !timing) return;
 
-    if (tickedCount === 0) return setFormError(a.noneTicked);
+    if (toSendCount === 0) return setFormError(a.noneTicked);
     const now = nowSeconds();
     const starts = timing.tracks.flatMap((t) => (t.startsAt === null ? [] : [t.startsAt]));
     const tooOld = starts.filter((s) => checkTimestamp(s, now) === "tooOld").length;
@@ -86,9 +89,11 @@ export function AlbumForm({ onResults }: { onResults: (entries: ScrobbleEntry[],
     setFormError(null);
 
     const { album } = loaded;
+    const indexes: number[] = [];
     const entries: ScrobbleEntry[] = album.tracks.flatMap((track, i) => {
       const startsAt = timing.tracks[i]!.startsAt;
-      if (startsAt === null) return [];
+      if (startsAt === null || loaded.sent[i]) return [];
+      indexes.push(i);
       const entry: ScrobbleEntry = { artist: track.artist, track: track.title, timestamp: startsAt, album: album.name };
       if (album.artist !== track.artist) entry.albumArtist = album.artist;
       return [entry];
@@ -102,7 +107,11 @@ export function AlbumForm({ onResults }: { onResults: (entries: ScrobbleEntry[],
     setBusy(false);
 
     if (result.entries.length > 0) onResults(result.entries, result.outcomes);
-    if (!result.ok) return setFailure(describeFailure(result.failure));
+    if (!result.ok) {
+      const sentNow = new Set(indexes.slice(0, result.entries.length));
+      update({ sent: loaded.sent.map((wasSent, i) => wasSent || sentNow.has(i)) });
+      return setFailure(describeFailure(result.failure));
+    }
     setLoaded(null);
   }
 
@@ -190,6 +199,7 @@ export function AlbumForm({ onResults }: { onResults: (entries: ScrobbleEntry[],
                     className="rs-check"
                     type="checkbox"
                     checked={loaded.included[i]}
+                    disabled={loaded.sent[i]}
                     aria-label={a.include(track.title)}
                     onChange={(e) => update({ included: loaded.included.map((v, j) => (j === i ? e.target.checked : v)) })}
                   />
@@ -199,6 +209,7 @@ export function AlbumForm({ onResults }: { onResults: (entries: ScrobbleEntry[],
                     {timed.estimated && <abbr className="est" title={a.estimatedTitle}> {a.estimated}</abbr>}
                   </span>
                   <time className="at">{timed.startsAt === null ? "" : formatClock(timed.startsAt)}</time>
+                  {loaded.sent[i] && <span className="sent rs-status rs-status--accepted">{a.sent}</span>}
                 </li>
               );
             })}
@@ -208,7 +219,7 @@ export function AlbumForm({ onResults }: { onResults: (entries: ScrobbleEntry[],
             {tickedCount > 0 && <span>{formatClock(fromLocalInputValue(loaded.startedAt)!)} – {formatClock(timing.endsAt)}</span>}
           </div>
           {formError && <p className="rs-hint rs-hint--error" role="alert">{formError}</p>}
-          <button className="rs-btn rs-btn--primary rs-btn--block" type="submit" aria-busy={busy || undefined}>{a.submit(tickedCount)}</button>
+          <button className="rs-btn rs-btn--primary rs-btn--block" type="submit" aria-busy={busy || undefined}>{a.submit(toSendCount)}</button>
         </>
       )}
     </form>
