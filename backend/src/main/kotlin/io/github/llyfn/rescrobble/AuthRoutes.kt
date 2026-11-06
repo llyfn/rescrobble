@@ -69,6 +69,7 @@ fun Route.authRoutes(config: Config, lastFm: LastFmClient, tokens: SessionTokenC
         }
 
         post("/logout") {
+            if (call.isCookieRequestFromElsewhere(config)) return@post call.respond(HttpStatusCode.Forbidden)
             call.sessions.clear<UserSession>()
             call.respond(HttpStatusCode.NoContent)
         }

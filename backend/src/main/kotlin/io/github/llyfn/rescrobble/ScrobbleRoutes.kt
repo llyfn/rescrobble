@@ -49,8 +49,9 @@ sealed interface ScrobbleResult {
 @Serializable
 class ScrobbleResponse(val results: List<ScrobbleResult>)
 
-fun Route.scrobbleRoutes(lastFm: LastFmClient, tokens: SessionTokenCodec, limiter: RateLimiter, clock: Clock) {
+fun Route.scrobbleRoutes(config: Config, lastFm: LastFmClient, tokens: SessionTokenCodec, limiter: RateLimiter, clock: Clock) {
     post("/api/scrobbles") {
+        if (call.isCookieRequestFromElsewhere(config)) return@post call.respond(HttpStatusCode.Forbidden)
         val user = call.signedInUser(tokens) ?: return@post call.respond(HttpStatusCode.Unauthorized)
         val entries = call.receive<ScrobbleRequest>().scrobbles
         if (entries.size !in 1..LastFmClient.MAX_BATCH) {

@@ -25,6 +25,7 @@ dependencies {
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.sessions)
     implementation(libs.ktor.server.content.negotiation)
+    implementation(libs.ktor.server.cors)
     implementation(libs.ktor.server.forwarded.header)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.client.core)

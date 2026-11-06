@@ -42,6 +42,7 @@ fun Application.module(config: Config, lastFmEngine: HttpClientEngine, clock: Cl
 
     // Deployed behind a TLS-terminating proxy; the secure cookie needs the original https scheme.
     install(XForwardedHeaders)
+    installCors(config)
     install(ContentNegotiation) { json(Json { classDiscriminator = "status" }) }
     install(Sessions) {
         cookie<UserSession>(SESSION_COOKIE) {
@@ -59,6 +60,6 @@ fun Application.module(config: Config, lastFmEngine: HttpClientEngine, clock: Cl
         get("/health") { call.respondText("ok") }
         authRoutes(config, lastFm, tokens)
         apiRoutes(lastFm, tokens)
-        scrobbleRoutes(lastFm, tokens, RateLimiter(clock), clock)
+        scrobbleRoutes(config, lastFm, tokens, RateLimiter(clock), clock)
     }
 }

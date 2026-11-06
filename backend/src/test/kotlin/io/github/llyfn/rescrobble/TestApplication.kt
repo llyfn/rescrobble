@@ -4,6 +4,7 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.header
 import io.ktor.client.engine.mock.respondError
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
@@ -44,8 +45,14 @@ fun rescrobbleTest(
     block()
 }
 
-/** A client that keeps redirects visible and arrives over https, as it would through the production proxy. */
-fun ApplicationTestBuilder.browser() = createClient {
+/**
+ * A browser on the Web App's own pages: redirects stay visible, requests arrive over https as they
+ * would through the production proxy, and they carry the Web App's origin.
+ */
+fun ApplicationTestBuilder.browser(origin: String? = "https://rescrobble.test") = createClient {
     followRedirects = false
-    defaultRequest { header("X-Forwarded-Proto", "https") }
+    defaultRequest {
+        header("X-Forwarded-Proto", "https")
+        origin?.let { header(HttpHeaders.Origin, it) }
+    }
 }
