@@ -4,6 +4,8 @@ import { createApi, loadApiKey } from "./backend.ts";
 import { History } from "./History.tsx";
 import { scrobbleId } from "./mirror/db.ts";
 import { useMirrorSync } from "./mirror/useMirrorSync.ts";
+import { useJobs } from "./jobs/useJobs.ts";
+import { JobList } from "./JobList.tsx";
 import { Settings } from "./Settings.tsx";
 import type { WebsiteGateway } from "./website/gateway.ts";
 import { TabGateway } from "./website/tabGateway.ts";
@@ -106,6 +108,12 @@ interface ShellProps {
 function Shell({ session, pro, transport, gateway, onSignOut }: ShellProps) {
   const [screen, setScreen] = useState<Screen>("history");
   const mirror = useMirrorSync(session.username);
+  const jobs = useJobs(gateway, session.username, (job, entry) => {
+    if (job.kind === "delete") return void mirror.remove([entry.target.id]);
+    if (!entry.after) return;
+    const updated = { ...entry.target, artist: entry.after.artist, track: entry.after.track, album: entry.after.album };
+    void mirror.replace(entry.target.id, { ...updated, id: scrobbleId(updated) });
+  });
 
   return (
     <div className="shell">
@@ -133,18 +141,7 @@ function Shell({ session, pro, transport, gateway, onSignOut }: ShellProps) {
       </nav>
       <main className="work">
         {screen === "history" && (
-          <History
-            store={mirror.store}
-            onSyncNow={mirror.syncNow}
-            gateway={gateway}
-            user={session.username}
-            pro={pro}
-            onApplied={(target, after) => {
-              if (!after) return void mirror.remove([target.id]);
-              const updated = { ...target, artist: after.artist, track: after.track, album: after.album };
-              void mirror.replace(target.id, { ...updated, id: scrobbleId(updated) });
-            }}
-          />
+          <History store={mirror.store} onSyncNow={mirror.syncNow} jobs={jobs} pro={pro} />
         )}
         {screen === "add" && (
           <ScrobbleTransportContext value={transport}>
@@ -152,7 +149,8 @@ function Shell({ session, pro, transport, gateway, onSignOut }: ShellProps) {
           </ScrobbleTransportContext>
         )}
         {screen === "settings" && <Settings onRebuild={mirror.rebuild} />}
-        {(screen === "jobs" || screen === "changeLog") && <h1 className="placeholder">{screenLabels[screen]}</h1>}
+        {screen === "jobs" && <JobList jobs={jobs.jobs} />}
+        {screen === "changeLog" && <h1 className="placeholder">{screenLabels[screen]}</h1>}
       </main>
     </div>
   );

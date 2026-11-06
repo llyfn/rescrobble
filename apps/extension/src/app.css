@@ -59,3 +59,9 @@ mark.match { color: inherit; background: color-mix(in oklab, var(--rs-ink) 9%, t
 .preview .field-change { display: block; }
 .preview .field-change .rs-label { margin-right: var(--rs-space-2); }
 .preview .empty-preview { margin: 0; padding: var(--rs-space-4) var(--rs-space-5); }
+.preview footer .controls { display: flex; gap: var(--rs-space-2); }
+.history .interrupted { margin: var(--rs-space-3) var(--rs-space-6) 0; }
+.history .interrupted .actions { display: flex; gap: var(--rs-space-2); margin-top: var(--rs-space-2); }
+.job-list { padding: var(--rs-space-5) var(--rs-space-6); --rs-table-inset: 0; }
+.job-list h1 { margin: 0 0 var(--rs-space-5); font: var(--rs-text-heading); }
+.job-list .rs-table { background: var(--rs-surface); }

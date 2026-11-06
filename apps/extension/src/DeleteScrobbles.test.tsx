@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import { formatPlayedShort } from "./format.ts";
-import { jobTiming } from "./jobs/runJob.ts";
+import { jobTiming } from "./jobs/runner.ts";
 import { lastFmHistory, type Play } from "./test/lastfmHistory.ts";
 import { FakeLastFmWebsite, siteScrobble } from "./test/fakeWebsite.ts";
 import { renderSignedIn } from "./test/extension.tsx";
@@ -80,7 +80,6 @@ describe("deleting selected Scrobbles", () => {
       "deleteScrobble Let Down - Remastered",
     ]);
     expect(fact("Scrobbles")).toBe("1");
-    expect(preview().getByText(/rescrobble opened last.fm in a background tab/)).toBeInTheDocument();
   });
 
   it("skips a Scrobble that no longer exists on Last.fm as not found", async () => {
@@ -95,7 +94,7 @@ describe("deleting selected Scrobbles", () => {
     expect(website.calls.filter((c) => c.op === "deleteScrobble")).toHaveLength(2);
   });
 
-  it("stops and says what to do when last.fm is logged out", async () => {
+  it("pauses and says what to do when last.fm is logged out", async () => {
     const website = websiteWith(plays);
     website.failNext("listTrack", { ok: false, reason: "loggedOut" });
     const { user } = await openWithRadioheadSelected(website);
@@ -103,9 +102,14 @@ describe("deleting selected Scrobbles", () => {
 
     await user.click(preview().getByRole("button", { name: "Delete 3 scrobbles" }));
 
-    expect(await preview().findByRole("alert")).toHaveTextContent("Log in to last.fm in this browser, then try again.");
+    expect(await preview().findByRole("alert")).toHaveTextContent("Log in to last.fm in this browser, then resume.");
+    expect(preview().getByText(/rescrobble opened last.fm in a background tab/)).toBeInTheDocument();
     expect(website.calls.filter((c) => c.op === "deleteScrobble")).toHaveLength(0);
     expect(fact("Scrobbles")).toBe("4");
+
+    await user.click(preview().getByRole("button", { name: "Resume" }));
+
+    expect(await preview().findByText("3 deleted")).toBeInTheDocument();
   });
 
   it("spaces website requests apart", async () => {

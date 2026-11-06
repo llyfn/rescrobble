@@ -1,23 +1,29 @@
 import { useId, useState, type ReactNode } from "react";
 import { changeError, checkTimestamp, diffValues, EDIT_FIELDS, type EditableValues, type EditField, type FieldChange } from "@rescrobble/core";
 import type { Scrobble } from "./mirror/db.ts";
-import { editedValues, runJob, type JobKind, type TargetStatus } from "./jobs/runJob.ts";
-import type { WebsiteGateway } from "./website/gateway.ts";
+import type { JobNotice, StoredJob } from "./jobs/jobStore.ts";
+import { editedValues, type JobTarget, type TargetStatus } from "./jobs/model.ts";
+import { jobTiming } from "./jobs/runner.ts";
+import type { Jobs } from "./jobs/useJobs.ts";
 import { formatPlayedShort } from "./format.ts";
 import { strings } from "./strings.ts";
 
 const p = strings.preview;
 const e = strings.edit;
+const j = strings.job;
 const statusClass: Record<TargetStatus, string> = {
   queued: "rs-status--pending",
   done: "rs-status--accepted",
   notFound: "rs-status--ignored",
   failed: "rs-status--rejected",
   unchanged: "rs-status--pending",
+  cancelled: "rs-status--pending",
 };
 
 /** What the Mirror knows of a Scrobble's values. The Mirror has no album artist; the website supplies it when the Job runs. */
-const mirrorValues = (s: Scrobble): EditableValues => ({ artist: s.artist, track: s.track, album: s.album, albumArtist: "" });
+const mirrorValues = (s: JobTarget): EditableValues => ({ artist: s.artist, track: s.track, album: s.album, albumArtist: "" });
+
+const clock = (millis: number) => new Date(millis).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
 /**
  * A value's change as a fragment diff when text was only removed or only inserted, or when most of the
@@ -42,6 +48,64 @@ function ValueDiff({ before, after }: { before: string; after: string }) {
       {before && <del>{before}</del>}
       <ins>{after}</ins>
     </>
+  );
+}
+
+/** The artist and album beneath a record, leaving out whichever the Edit already shows changing. */
+function context(before: EditableValues, after: EditableValues | null): string {
+  return [
+    !after || after.artist === before.artist ? before.artist : "",
+    before.album && (!after || after.album === before.album) ? before.album : "",
+  ].filter(Boolean).join(" · ");
+}
+
+function Notice({ tone, children }: { tone?: "warn" | "danger"; children: ReactNode }) {
+  return (
+    <div className={tone ? `rs-notice rs-notice--${tone}` : "rs-notice"} role={tone === "warn" ? "alert" : undefined}>
+      <svg className="rs-icon" viewBox="0 0 16 16" aria-hidden="true">
+        {tone ? <><path d="M8 2.5l6 11H2l6-11z" /><path d="M8 7v3M8 12h.01" /></> : <><circle cx="8" cy="8" r="6" /><path d="M8 7.5v3.5M8 5h.01" /></>}
+      </svg>
+      <span>{children}</span>
+    </div>
+  );
+}
+
+interface Row {
+  target: JobTarget;
+  after: EditableValues | null;
+  status: TargetStatus;
+  irreversible: boolean;
+}
+
+function Records({ rows, kind, showStatus }: { rows: Row[]; kind: StoredJob["kind"]; showStatus: boolean }) {
+  const labels = kind === "edit" ? e.status : p.status;
+  return (
+    <ul className="records rs-num">
+      {rows.map(({ target: t, after, status, irreversible }) => {
+        const applied = status === "done";
+        const before = mirrorValues(t);
+        return (
+          <li key={t.id} data-status={status}>
+            <div className={applied ? "rs-edit rs-edit--applied" : "rs-edit"}>
+              <span className="rs-edit__meta">{formatPlayedShort(t.timestamp)}</span>
+              <span className="rs-edit__values">
+                {after ? (
+                  EDIT_FIELDS.filter((f) => before[f] !== after[f]).map((f) => (
+                    <span key={f} className="field-change">
+                      {f !== "track" && <span className="rs-label">{e.fields[f]}</span>}
+                      <ValueDiff before={before[f]} after={after[f]} />
+                    </span>
+                  ))
+                ) : applied ? <del>{t.track}</del> : <span className="track">{t.track}</span>}
+                <span className="secondary">{context(before, after)}</span>
+                {irreversible && status === "queued" && <span className="rs-label irreversible">{p.irreversibleTag}</span>}
+              </span>
+            </div>
+            <span className={`rs-status ${statusClass[status]}`} hidden={!showStatus}>{labels[status]}</span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -95,74 +159,52 @@ function ChangeRow({ change, onChange, onRemove }: { change: FieldChange; onChan
   );
 }
 
-/** The artist and album beneath a record, leaving out whichever the Edit already shows changing. */
-function context(before: EditableValues, after: EditableValues | null): string {
-  const parts = [
-    !after || after.artist === before.artist ? before.artist : "",
-    before.album && (!after || after.album === before.album) ? before.album : "",
-  ].filter(Boolean);
-  return parts.join(" · ");
+const ESTIMATE_ABOVE = 500;
+
+/** Minutes for a Job: one request per Scrobble plus one page read per Track, about a second each. */
+function estimateMinutes(targets: JobTarget[]): number {
+  const tracks = new Set(targets.map((t) => `${t.artist.toLocaleLowerCase()}\u0000${t.track.toLocaleLowerCase()}`)).size;
+  return Math.ceil(((targets.length + tracks) * jobTiming.requestSpacingMs) / 60_000);
 }
 
-interface Props {
-  kind: JobKind["kind"];
+interface BuilderProps {
+  kind: StoredJob["kind"];
   targets: Scrobble[];
-  gateway: WebsiteGateway;
-  user: string;
-  /** A Scrobble was deleted (no `after`) or edited (`after` holds its new values). */
-  onApplied: (target: Scrobble, after?: EditableValues) => void;
+  busy: boolean;
+  onConfirm: (targets: JobTarget[], changes: FieldChange[]) => void;
   onClose: () => void;
 }
 
-type Phase = "preview" | "running" | "finished";
-
-export function JobPreview({ kind, targets, gateway, user, onApplied, onClose }: Props) {
-  const [phase, setPhase] = useState<Phase>("preview");
-  const [statuses, setStatuses] = useState<ReadonlyMap<string, TargetStatus>>(new Map());
-  const [stopped, setStopped] = useState<string | null>(null);
+/** Describing a change and previewing exactly which Scrobbles it touches, before anything is sent. */
+export function JobBuilder({ kind, targets, busy, onConfirm, onClose }: BuilderProps) {
   const [changes, setChanges] = useState<FieldChange[]>([{ field: "track", kind: "replace", find: "", replaceWith: "", regex: false, caseSensitive: false }]);
   const [now] = useState(() => Math.floor(Date.now() / 1000));
 
   const editing = kind === "edit";
   const valid = changes.every((c) => !changeError(c));
-  const rows = targets.map((t) => ({ target: t, after: editing && valid ? editedValues(mirrorValues(t), changes) : null }));
+  const rows: Row[] = targets.map((target) => ({
+    target,
+    after: editing && valid ? editedValues(mirrorValues(target), changes) : null,
+    status: "queued",
+    irreversible: !editing && checkTimestamp(target.timestamp, now) === "tooOld",
+  }));
   const affected = editing ? rows.filter((r) => r.after) : rows;
-  const unchanged = editing ? rows.length - affected.length : 0;
-  const irreversible = new Set(kind === "delete" ? targets.filter((t) => checkTimestamp(t.timestamp, now) === "tooOld").map((t) => t.id) : []);
+  const unchanged = rows.length - affected.length;
+  const irreversible = affected.filter((r) => r.irreversible).length;
   const count = p.count(affected.length);
-  const tally = (status: TargetStatus) => [...statuses.values()].filter((s) => s === status).length;
-  const labels = editing ? e.status : p.status;
-
-  async function confirm() {
-    setPhase("running");
-    const job: JobKind = editing ? { kind: "edit", changes } : { kind: "delete" };
-    const byId = new Map(affected.map((r) => [r.target.id, r.target]));
-    await runJob(gateway, user, affected.map((r) => r.target), job, {
-      onStatus: (id, status, after) => {
-        setStatuses((current) => new Map(current).set(id, status));
-        if (status === "done") onApplied(byId.get(id)!, after);
-      },
-      onStopped: (reason) => setStopped(p.stopped[reason] ?? reason),
-    });
-    setPhase("finished");
-  }
-
-  const heading = editing ? e.heading(count) : p.deleteHeading(count);
-  const running = phase === "running";
-  const handled = statuses.size;
 
   return (
     <aside className="preview" aria-label={p.label}>
       <header>
-        <h2 className="rs-num">{heading}</h2>
-        {editing && phase === "preview" && (
+        <h2 className="rs-num">{editing ? e.heading(count) : p.deleteHeading(count)}</h2>
+        {editing && (
           <div className="builder" role="group" aria-label={e.builderLabel}>
             {changes.map((c, i) => (
               <ChangeRow
                 key={i}
                 change={c}
-                onChange={(next) => setChanges(changes.map((old, j) => (j === i ? next : old)))}
-                onRemove={changes.length > 1 ? () => setChanges(changes.filter((_, j) => j !== i)) : undefined}
+                onChange={(next) => setChanges(changes.map((old, k) => (k === i ? next : old)))}
+                onRemove={changes.length > 1 ? () => setChanges(changes.filter((_, k) => k !== i)) : undefined}
               />
             ))}
             <button type="button" className="rs-chip rs-chip--add" onClick={() => setChanges([...changes, { field: "album", kind: "set", value: "" }])}>
@@ -171,74 +213,78 @@ export function JobPreview({ kind, targets, gateway, user, onApplied, onClose }:
             </button>
           </div>
         )}
-        {editing && phase === "preview" && unchanged > 0 && affected.length > 0 && <p className="rs-hint">{e.unchanged(unchanged)}</p>}
-        {irreversible.size > 0 && phase === "preview" && (
-          <div className="rs-notice rs-notice--danger">
-            <svg className="rs-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5l6 11H2l6-11z" /><path d="M8 7v3M8 12h.01" /></svg>
-            <span>{p.irreversible(irreversible.size, targets.length)}</span>
-          </div>
-        )}
-        {phase !== "preview" && (
-          <div className="rs-notice">
-            <svg className="rs-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" /><path d="M8 7.5v3.5M8 5h.01" /></svg>
-            <span>{p.backgroundTab}</span>
-          </div>
-        )}
-        {stopped && (
-          <div className="rs-notice rs-notice--warn" role="alert">
-            <svg className="rs-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5l6 11H2l6-11z" /><path d="M8 7v3M8 12h.01" /></svg>
-            <span>{stopped}</span>
-          </div>
-        )}
+        {editing && unchanged > 0 && affected.length > 0 && <p className="rs-hint">{e.unchanged(unchanged)}</p>}
+        {irreversible > 0 && <Notice tone="danger">{p.irreversible(irreversible, affected.length)}</Notice>}
+        {affected.length > ESTIMATE_ABOVE && <p className="rs-hint">{p.estimate(estimateMinutes(affected.map((r) => r.target)))}</p>}
+        {busy && <Notice tone="warn">{j.busy}</Notice>}
       </header>
       {editing && affected.length === 0 && <p className="rs-hint empty-preview">{e.nothing}</p>}
-      <ul className="records rs-num">
-        {affected.map(({ target: t, after }) => {
-          const status = statuses.get(t.id) ?? "queued";
-          const applied = status === "done";
-          const before = mirrorValues(t);
-          return (
-            <li key={t.id} data-status={status}>
-              <div className={applied ? "rs-edit rs-edit--applied" : "rs-edit"}>
-                <span className="rs-edit__meta">{formatPlayedShort(t.timestamp)}</span>
-                <span className="rs-edit__values">
-                  {after ? (
-                    EDIT_FIELDS.filter((f) => before[f] !== after[f]).map((f) => (
-                      <span key={f} className="field-change">
-                        {f !== "track" && <span className="rs-label">{e.fields[f]}</span>}
-                        <ValueDiff before={before[f]} after={after[f]} />
-                      </span>
-                    ))
-                  ) : applied ? <del>{t.track}</del> : <span className="track">{t.track}</span>}
-                  <span className="secondary">{context(before, after)}</span>
-                  {irreversible.has(t.id) && status === "queued" && <span className="rs-label irreversible">{p.irreversibleTag}</span>}
-                </span>
-              </div>
-              <span className={`rs-status ${statusClass[status]}`} hidden={phase === "preview"}>{labels[status]}</span>
-            </li>
-          );
-        })}
-      </ul>
+      <Records rows={affected} kind={kind} showStatus={false} />
       <footer>
-        {phase === "finished" ? (
+        <button
+          type="button"
+          className={editing ? "rs-btn rs-btn--primary rs-btn--block" : "rs-btn rs-btn--danger rs-btn--block"}
+          onClick={() => onConfirm(affected.map((r) => r.target), editing ? changes : [])}
+          disabled={busy || affected.length === 0}
+        >
+          {editing ? e.confirm(count) : p.confirmDelete(count)}
+        </button>
+        <button type="button" className="rs-btn rs-btn--quiet rs-btn--block" onClick={onClose}>{p.cancel}</button>
+      </footer>
+    </aside>
+  );
+}
+
+function noticeText(notice: JobNotice): { tone: "warn" | undefined; text: string } {
+  switch (notice.kind) {
+    case "paused": return { tone: undefined, text: j.paused };
+    case "backoff": return { tone: undefined, text: j.backoff(clock(notice.until)) };
+    case "blocked": return { tone: "warn", text: j.blocked(clock(notice.until)) };
+    case "failures": return { tone: "warn", text: j.failures };
+    case "loggedOut": return { tone: "warn", text: j.loggedOut };
+    case "editUnavailable": return { tone: "warn", text: j.editUnavailable };
+  }
+}
+
+/** A Job running, paused or done: each record resolving in place, with the controls to steer it. */
+export function JobProgress({ job, jobs, onClose }: { job: StoredJob; jobs: Jobs; onClose: () => void }) {
+  const editing = job.kind === "edit";
+  const count = p.count(job.entries.length);
+  const tally = (status: TargetStatus) => job.entries.filter((x) => x.status === status).length;
+  const handled = job.entries.filter((x) => x.status !== "queued").length;
+  const summary = editing ? e.summary(tally("done"), tally("notFound"), tally("failed")) : p.summary(tally("done"), tally("notFound"), tally("failed"));
+  const live = job.state === "running" || job.state === "paused";
+  const notice = job.notice && noticeText(job.notice);
+  const rows: Row[] = job.entries.map((x) => ({
+    target: x.target,
+    after: editing ? (x.after ?? editedValues(mirrorValues(x.target), job.changes)) : null,
+    status: x.status,
+    irreversible: false,
+  }));
+
+  return (
+    <aside className="preview" aria-label={p.label}>
+      <header>
+        <h2 className="rs-num">{editing ? e.heading(count) : p.deleteHeading(count)}</h2>
+        {live && <Notice>{p.backgroundTab}</Notice>}
+        {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
+      </header>
+      <Records rows={rows} kind={job.kind} showStatus />
+      <footer>
+        {live ? (
           <>
-            <p className="rs-hint" role="status">
-              {editing ? e.summary(tally("done"), tally("notFound"), tally("failed")) : p.summary(tally("done"), tally("notFound"), tally("failed"))}
-            </p>
-            <button type="button" className="rs-btn rs-btn--primary rs-btn--block" onClick={onClose}>{p.close}</button>
+            <p className="rs-hint rs-num" role="status">{editing ? e.running(handled, job.entries.length) : p.deleting(handled, job.entries.length)}</p>
+            <div className="controls">
+              {job.state === "paused"
+                ? <button type="button" className="rs-btn rs-btn--primary" onClick={jobs.resume}>{j.resume}</button>
+                : <button type="button" className="rs-btn" onClick={jobs.pause}>{j.pause}</button>}
+              <button type="button" className="rs-btn rs-btn--quiet" onClick={jobs.cancel}>{j.cancel}</button>
+            </div>
           </>
         ) : (
           <>
-            <button
-              type="button"
-              className={editing ? "rs-btn rs-btn--primary rs-btn--block" : "rs-btn rs-btn--danger rs-btn--block"}
-              onClick={confirm}
-              aria-busy={running || undefined}
-              disabled={running || affected.length === 0}
-            >
-              {running ? (editing ? e.running(handled, affected.length) : p.deleting(handled, affected.length)) : editing ? e.confirm(count) : p.confirmDelete(count)}
-            </button>
-            {phase === "preview" && <button type="button" className="rs-btn rs-btn--quiet rs-btn--block" onClick={onClose}>{p.cancel}</button>}
+            <p className="rs-hint" role="status">{job.state === "cancelled" ? j.cancelled(summary) : summary}</p>
+            <button type="button" className="rs-btn rs-btn--primary rs-btn--block" onClick={onClose}>{p.close}</button>
           </>
         )}
       </footer>

@@ -5,11 +5,14 @@ import { fakeBrowser } from "wxt/testing/fake-browser";
 import { resetLastFmReader } from "@rescrobble/scrobble-ui";
 import { IDBFactory } from "fake-indexeddb";
 import { syncTiming } from "../mirror/sync.ts";
-import { jobTiming } from "../jobs/runJob.ts";
+import { jobTiming } from "../jobs/runner.ts";
 import { server } from "./server.ts";
 
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
+const jobDefaults = { ...jobTiming };
+
 beforeEach(() => {
+  Object.assign(jobTiming, jobDefaults);
   fakeBrowser.reset();
   globalThis.indexedDB = new IDBFactory();
   syncTiming.pageDelayMs = 0;

@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode, type UIEvent } from "react";
 import { applyFilter, matchedRange, type Condition, type TextField } from "@rescrobble/core";
-import type { EditableValues } from "@rescrobble/core";
-import { JobPreview } from "./JobPreview.tsx";
+import { JobBuilder, JobProgress } from "./JobPreview.tsx";
+import type { Jobs } from "./jobs/useJobs.ts";
 import { FilterBar } from "./FilterBar.tsx";
-import type { WebsiteGateway } from "./website/gateway.ts";
 import type { Scrobble } from "./mirror/db.ts";
 import type { MirrorStore } from "./mirror/store.ts";
 import { useMirror } from "./mirror/useMirror.ts";
@@ -51,18 +50,19 @@ function SelectAll({ total, selected, onToggle }: { total: number; selected: num
 interface HistoryProps {
   store: MirrorStore;
   onSyncNow: () => void;
-  gateway: WebsiteGateway;
-  user: string;
+  jobs: Jobs;
   pro: boolean | null;
-  onApplied: (target: Scrobble, after?: EditableValues) => void;
 }
 
-export function History({ store, onSyncNow, gateway, user, pro, onApplied }: HistoryProps) {
+type Panel = { mode: "build"; kind: "delete" | "edit"; targets: Scrobble[] } | { mode: "job"; id: string };
+
+export function History({ store, onSyncNow, jobs, pro }: HistoryProps) {
   const mirror = useMirror(store);
   const [sort, setSort] = useState<Sort>({ column: "played", descending: true });
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [deselected, setDeselected] = useState<ReadonlySet<string>>(new Set());
-  const [job, setJob] = useState<{ kind: "delete" | "edit"; targets: Scrobble[] } | null>(null);
+  const [panel, setPanel] = useState<Panel | null>(null);
+  const shownJob = panel?.mode === "job" ? jobs.jobs.find((j) => j.id === panel.id) ?? null : null;
   const [scrollTop, setScrollTop] = useState(0);
   const [viewport, setViewport] = useState(0);
 
@@ -134,7 +134,7 @@ export function History({ store, onSyncNow, gateway, user, pro, onApplied }: His
   const selection = () => matches.filter((s) => !deselected.has(s.id));
 
   return (
-    <div className={job ? "history with-preview" : "history"}>
+    <div className={panel ? "history with-preview" : "history"}>
       <div className="history-main">
         <div className="head">
           <h1>{h.heading}</h1>
@@ -152,12 +152,27 @@ export function History({ store, onSyncNow, gateway, user, pro, onApplied }: His
           </div>
         </div>
         <FilterBar conditions={conditions} onChange={changeConditions} />
-        {filtering && selectedCount > 0 && !job && (
+        {jobs.interrupted && !panel && (
+          <div className="interrupted rs-notice rs-notice--warn" role="alert">
+            <svg className="rs-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5l6 11H2l6-11z" /><path d="M8 7v3M8 12h.01" /></svg>
+            <span>
+              {strings.job.interrupted(strings.job.kinds[jobs.interrupted.kind], strings.preview.count(jobs.interrupted.entries.length))}
+              <span className="actions">
+                <button type="button" className="rs-btn rs-btn--primary" onClick={() => {
+                  setPanel({ mode: "job", id: jobs.interrupted!.id });
+                  jobs.resume();
+                }}>{strings.job.resume}</button>
+                <button type="button" className="rs-btn rs-btn--quiet" onClick={jobs.cancel}>{strings.job.discard}</button>
+              </span>
+            </span>
+          </div>
+        )}
+        {filtering && selectedCount > 0 && !panel && (
           <div className="selection-actions" role="toolbar" aria-label={strings.actions.label}>
-            <button type="button" className="rs-btn" onClick={() => setJob({ kind: "edit", targets: selection() })} disabled={pro === false}>
+            <button type="button" className="rs-btn" onClick={() => setPanel({ mode: "build", kind: "edit", targets: selection() })} disabled={pro === false}>
               {strings.actions.edit(strings.preview.count(selectedCount))}
             </button>
-            <button type="button" className="rs-btn" onClick={() => setJob({ kind: "delete", targets: selection() })}>
+            <button type="button" className="rs-btn" onClick={() => setPanel({ mode: "build", kind: "delete", targets: selection() })}>
               {strings.actions.delete(strings.preview.count(selectedCount))}
             </button>
             {pro === false && <span className="rs-hint">{strings.actions.needsPro}</span>}
@@ -205,15 +220,21 @@ export function History({ store, onSyncNow, gateway, user, pro, onApplied }: His
           </table>
         </div>
       </div>
-      {job && (
-        <JobPreview
-          kind={job.kind}
-          targets={job.targets}
-          gateway={gateway}
-          user={user}
-          onApplied={onApplied}
+      {panel?.mode === "build" && (
+        <JobBuilder
+          kind={panel.kind}
+          targets={panel.targets}
+          busy={jobs.active !== null}
+          onConfirm={(targets, changes) => setPanel({ mode: "job", id: jobs.start(panel.kind, targets, changes) })}
+          onClose={() => setPanel(null)}
+        />
+      )}
+      {shownJob && (
+        <JobProgress
+          job={shownJob}
+          jobs={jobs}
           onClose={() => {
-            setJob(null);
+            setPanel(null);
             setDeselected(new Set());
           }}
         />
