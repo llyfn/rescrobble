@@ -1,13 +1,16 @@
 package io.github.llyfn.rescrobble
 
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
+import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 
 /** Fields are nullable so a missing one is reported per entry instead of failing the whole request. */
@@ -46,7 +49,7 @@ sealed interface ScrobbleResult {
 @Serializable
 class ScrobbleResponse(val results: List<ScrobbleResult>)
 
-fun Route.scrobbleRoutes(lastFm: LastFmClient, tokens: SessionTokenCodec, clock: Clock) {
+fun Route.scrobbleRoutes(lastFm: LastFmClient, tokens: SessionTokenCodec, limiter: RateLimiter, clock: Clock) {
     post("/api/scrobbles") {
         val user = call.signedInUser(tokens) ?: return@post call.respond(HttpStatusCode.Unauthorized)
         val entries = call.receive<ScrobbleRequest>().scrobbles
@@ -57,9 +60,17 @@ fun Route.scrobbleRoutes(lastFm: LastFmClient, tokens: SessionTokenCodec, clock:
         val now = clock.instant()
         val checked = entries.map { validate(it, now) }
         val submissions = checked.filterIsInstance<Validated.Valid>().map { it.submission }
+        val reservation = when (val decision = limiter.tryAcquire(user.sessionKey, submissions.size)) {
+            is RateLimiter.Decision.Denied -> {
+                call.response.header(HttpHeaders.RetryAfter, decision.retryAfter.toSecondsCeiling())
+                return@post call.respond(HttpStatusCode.TooManyRequests, ErrorResponse(decision.reason))
+            }
+            is RateLimiter.Decision.Allowed -> decision.reservation
+        }
         val outcomes = try {
             if (submissions.isEmpty()) emptyList() else lastFm.scrobble(user.sessionKey, submissions)
         } catch (e: LastFmException) {
+            limiter.refund(reservation)
             return@post call.respondLastFmFailure(e)
         }
 
@@ -106,3 +117,5 @@ private fun validate(entry: ScrobbleEntry, now: Instant): Validated {
         )
     }
 }
+
+private fun Duration.toSecondsCeiling(): Long = (toMillis() + 999) / 1000
