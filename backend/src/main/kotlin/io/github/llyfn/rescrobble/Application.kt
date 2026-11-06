@@ -58,7 +58,7 @@ fun Application.module(config: Config, lastFmEngine: HttpClientEngine, clock: Cl
     routing {
         get("/health") { call.respondText("ok") }
         authRoutes(config, lastFm, tokens)
-        apiRoutes(tokens)
+        apiRoutes(lastFm, tokens)
         scrobbleRoutes(lastFm, tokens, clock)
     }
 }

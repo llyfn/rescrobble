@@ -19,6 +19,7 @@ class WebAppSignInTest {
     private val signedInLastFm = LastFmFake { method, _ ->
         when (method) {
             "auth.getSession" -> lastFmJson(sessionJson("rj", "session-key-123"))
+            "user.getInfo" -> lastFmJson(userInfoJson("rj"))
             else -> error("unexpected Last.fm method $method")
         }
     }
@@ -53,7 +54,7 @@ class WebAppSignInTest {
     fun `the token exchange is a correctly signed auth getSession call`() = rescrobbleTest(lastFm = signedInLastFm.engine) {
         browser().get("/auth/callback?token=test-token")
 
-        val (request, form) = signedInLastFm.requests.single()
+        val (request, form) = signedInLastFm.requests.single { it.second["method"] == "auth.getSession" }
         assertEquals("POST", request.method.value)
         assertEquals("https://ws.audioscrobbler.com/2.0/", request.url.toString())
         assertEquals("auth.getSession", form["method"])

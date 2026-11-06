@@ -73,3 +73,6 @@ fun acceptAll(form: Parameters): String {
         (0 until count).map { i -> scrobbleEntryJson(form["artist[$i]"]!!, form["track[$i]"]!!, form["timestamp[$i]"]!!) },
     )
 }
+
+fun userInfoJson(name: String, subscriber: String = "0") =
+    """{"user":{"name":"$name","realname":"","subscriber":"$subscriber","playcount":"1234","type":"user"}}"""

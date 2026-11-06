@@ -41,9 +41,12 @@ class SecretsInLogsTest {
 
     @Test
     fun `Web App and Extension sign-in, me and logout never log tokens, session keys or the shared secret`() = rescrobbleTest(
-        lastFm = LastFmFake { _, form ->
-            if (form["token"] == "secret-token-ok") lastFmJson(sessionJson("rj", "secret-session-key"))
-            else lastFmError(4, "Invalid authentication token supplied")
+        lastFm = LastFmFake { method, form ->
+            when {
+                method == "user.getInfo" -> lastFmError(9, "Invalid session key - Please re-authenticate")
+                form["token"] == "secret-token-ok" -> lastFmJson(sessionJson("rj", "secret-session-key"))
+                else -> lastFmError(4, "Invalid authentication token supplied")
+            }
         }.engine,
     ) {
         val client = browser()

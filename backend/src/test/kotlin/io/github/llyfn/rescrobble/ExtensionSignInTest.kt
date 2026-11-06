@@ -24,6 +24,7 @@ class ExtensionSignInTest {
         when {
             method == "auth.getSession" && form["token"] == "good-token" -> lastFmJson(sessionJson("rj", "session-key-123"))
             method == "auth.getSession" -> lastFmError(14, "Unauthorized Token - This token has not been authorized")
+            method == "user.getInfo" -> lastFmJson(userInfoJson("rj"))
             else -> error("unexpected Last.fm method $method")
         }
     }

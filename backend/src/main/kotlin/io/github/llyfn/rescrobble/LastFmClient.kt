@@ -59,6 +59,13 @@ class LastFmClient(
         )
     }
 
+    /** Signed with the session key and no `user`, so Last.fm answers for, and validates, that session. */
+    suspend fun getAuthenticatedUsername(sessionKey: String): String {
+        val user = signedCall("user.getInfo", mapOf("sk" to sessionKey))["user"]?.jsonObject
+            ?: throw LastFmException.Unavailable("user.getInfo response has no user")
+        return user.getValue("name").jsonPrimitive.content
+    }
+
     /** Submits up to 50 Scrobbles in one batch; outcomes come back in submission order. */
     suspend fun scrobble(sessionKey: String, submissions: List<ScrobbleSubmission>): List<ScrobbleOutcome> {
         require(submissions.size in 1..MAX_BATCH) { "a batch holds 1 to $MAX_BATCH Scrobbles" }
@@ -128,6 +135,7 @@ class LastFmClient(
         const val API_URL = "https://ws.audioscrobbler.com/2.0/"
         const val AUTH_URL = "https://www.last.fm/api/auth/"
         const val MAX_BATCH = 50
+        const val INVALID_SESSION = 9
 
         /**
          * Last.fm signs every parameter except `format` and `callback`, sorted by name in ASCII order,

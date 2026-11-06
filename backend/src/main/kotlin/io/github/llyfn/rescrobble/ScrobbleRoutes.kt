@@ -57,7 +57,11 @@ fun Route.scrobbleRoutes(lastFm: LastFmClient, tokens: SessionTokenCodec, clock:
         val now = clock.instant()
         val checked = entries.map { validate(it, now) }
         val submissions = checked.filterIsInstance<Validated.Valid>().map { it.submission }
-        val outcomes = if (submissions.isEmpty()) emptyList() else lastFm.scrobble(user.sessionKey, submissions)
+        val outcomes = try {
+            if (submissions.isEmpty()) emptyList() else lastFm.scrobble(user.sessionKey, submissions)
+        } catch (e: LastFmException) {
+            return@post call.respondLastFmFailure(e)
+        }
 
         val outcomeIterator = outcomes.iterator()
         val results = checked.map { check ->
