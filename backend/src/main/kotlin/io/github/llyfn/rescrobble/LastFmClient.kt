@@ -15,6 +15,8 @@ import java.security.MessageDigest
 
 class LastFmSession(val username: String, val sessionKey: String)
 
+class LastFmUser(val name: String, val pro: Boolean?)
+
 class ScrobbleSubmission(
     val artist: String,
     val track: String,
@@ -60,10 +62,16 @@ class LastFmClient(
     }
 
     /** Signed with the session key and no `user`, so Last.fm answers for, and validates, that session. */
-    suspend fun getAuthenticatedUsername(sessionKey: String): String {
+    suspend fun getAuthenticatedUser(sessionKey: String): LastFmUser {
         val user = signedCall("user.getInfo", mapOf("sk" to sessionKey))["user"]?.jsonObject
             ?: throw LastFmException.Unavailable("user.getInfo response has no user")
-        return user.getValue("name").jsonPrimitive.content
+        // Last.fm doesn't define `subscriber`; clients read it as the Pro flag, sent as "1"/"0".
+        val pro = when (user["subscriber"]?.jsonPrimitive?.content) {
+            "1", "true" -> true
+            "0", "false" -> false
+            else -> null
+        }
+        return LastFmUser(name = user.getValue("name").jsonPrimitive.content, pro = pro)
     }
 
     /** Submits up to 50 Scrobbles in one batch; outcomes come back in submission order. */

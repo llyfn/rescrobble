@@ -105,14 +105,14 @@ class WebAppSignInTest {
     }
 
     @Test
-    fun `me returns the signed-in username with Pro unknown`() = rescrobbleTest(lastFm = signedInLastFm.engine) {
+    fun `me returns the signed-in username and Pro status`() = rescrobbleTest(lastFm = signedInLastFm.engine) {
         val client = browser()
         val cookie = client.get("/auth/callback?token=test-token").sessionCookie()!!
 
         val response = client.get("/api/me") { cookie(cookie.name, cookie.value) }
 
         assertEquals(HttpStatusCode.OK, response.status)
-        assertEquals("""{"username":"rj","pro":null}""", response.bodyAsText())
+        assertEquals("""{"username":"rj","pro":false}""", response.bodyAsText())
     }
 
     @Test

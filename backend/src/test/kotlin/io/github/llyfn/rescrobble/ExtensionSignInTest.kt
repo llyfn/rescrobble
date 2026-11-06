@@ -100,7 +100,7 @@ class ExtensionSignInTest {
         val response = browser().get("/api/me") { header(HttpHeaders.Authorization, "Bearer $token") }
 
         assertEquals(HttpStatusCode.OK, response.status)
-        assertEquals("""{"username":"rj","pro":null}""", response.bodyAsText())
+        assertEquals("""{"username":"rj","pro":false}""", response.bodyAsText())
     }
 
     @Test
