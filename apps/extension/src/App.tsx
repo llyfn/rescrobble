@@ -4,6 +4,8 @@ import { createApi, loadApiKey } from "./backend.ts";
 import { History } from "./History.tsx";
 import { useMirrorSync } from "./mirror/useMirrorSync.ts";
 import { Settings } from "./Settings.tsx";
+import type { WebsiteGateway } from "./website/gateway.ts";
+import { TabGateway } from "./website/tabGateway.ts";
 import { clearSession, loadSession, signIn, type StoredSession } from "./session.ts";
 import { strings } from "./strings.ts";
 
@@ -23,7 +25,8 @@ const screenLabels: Record<Screen, string> = {
   settings: strings.nav.settings,
 };
 
-export function App() {
+export function App({ gateway: providedGateway }: { gateway?: WebsiteGateway } = {}) {
+  const [gateway] = useState<WebsiteGateway>(() => providedGateway ?? new TabGateway());
   const [view, setView] = useState<View>({ kind: "loading" });
   const [busy, setBusy] = useState(false);
 
@@ -88,17 +91,18 @@ export function App() {
     );
   }
 
-  return <Shell session={view.session} pro={view.pro} transport={transport!} onSignOut={signOut} />;
+  return <Shell session={view.session} pro={view.pro} transport={transport!} gateway={gateway} onSignOut={signOut} />;
 }
 
 interface ShellProps {
   session: StoredSession;
   pro: boolean | null;
   transport: { api: ReturnType<typeof createApi>; loadApiKey: typeof loadApiKey };
+  gateway: WebsiteGateway;
   onSignOut: () => void;
 }
 
-function Shell({ session, pro, transport, onSignOut }: ShellProps) {
+function Shell({ session, pro, transport, gateway, onSignOut }: ShellProps) {
   const [screen, setScreen] = useState<Screen>("history");
   const mirror = useMirrorSync(session.username);
 
@@ -127,7 +131,9 @@ function Shell({ session, pro, transport, onSignOut }: ShellProps) {
         </div>
       </nav>
       <main className="work">
-        {screen === "history" && <History store={mirror.store} onSyncNow={mirror.syncNow} />}
+        {screen === "history" && (
+          <History store={mirror.store} onSyncNow={mirror.syncNow} gateway={gateway} user={session.username} onDeleted={(ids) => void mirror.remove(ids)} />
+        )}
         {screen === "add" && (
           <ScrobbleTransportContext value={transport}>
             <div className="add-page"><AddScrobbles /></div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LastFmReader } from "@rescrobble/core";
 import { loadApiKey } from "../backend.ts";
 import { MirrorDb } from "./db.ts";
@@ -9,6 +9,7 @@ import { MirrorSync } from "./sync.ts";
 export function useMirrorSync(username: string) {
   const [store] = useState(() => new MirrorStore());
   const [sync, setSync] = useState<MirrorSync | null>(null);
+  const dbRef = useRef<MirrorDb | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -18,6 +19,7 @@ export function useMirrorSync(username: string) {
       if (!live) return db.close();
       const engine = new MirrorSync(db, store, new LastFmReader(apiKey), username);
       opened = { db, sync: engine };
+      dbRef.current = db;
       setSync(engine);
       await engine.start();
     })().catch(() => live && store.update({ phase: "failed" }));
@@ -32,5 +34,10 @@ export function useMirrorSync(username: string) {
     store,
     syncNow: () => void sync?.start().catch(() => undefined),
     rebuild: () => void sync?.rebuild().catch(() => undefined),
+    /** Drops Scrobbles that no longer exist on Last.fm from the Mirror. */
+    remove: async (ids: string[]) => {
+      store.update({ remove: ids });
+      await dbRef.current?.remove(ids);
+    },
   };
 }

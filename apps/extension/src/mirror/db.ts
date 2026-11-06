@@ -62,6 +62,13 @@ export class MirrorDb {
     await done(tx);
   }
 
+  async remove(ids: string[]): Promise<void> {
+    const tx = this.db.transaction("scrobbles", "readwrite");
+    const store = tx.objectStore("scrobbles");
+    for (const id of ids) store.delete(id);
+    await done(tx);
+  }
+
   async state(): Promise<SyncState | null> {
     return (await request(this.db.transaction("meta").objectStore("meta").get("sync"))) ?? null;
   }

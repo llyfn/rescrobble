@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode, type UIEvent } from "react";
 import { applyFilter, matchedRange, type Condition, type TextField } from "@rescrobble/core";
+import { DeletePreview } from "./DeletePreview.tsx";
 import { FilterBar } from "./FilterBar.tsx";
+import type { WebsiteGateway } from "./website/gateway.ts";
 import type { Scrobble } from "./mirror/db.ts";
 import type { MirrorStore } from "./mirror/store.ts";
 import { useMirror } from "./mirror/useMirror.ts";
@@ -45,11 +47,20 @@ function SelectAll({ total, selected, onToggle }: { total: number; selected: num
   return <input ref={ref} className="rs-check" type="checkbox" aria-label={h.selectAll} checked={selected > 0 && selected === total} onChange={onToggle} />;
 }
 
-export function History({ store, onSyncNow }: { store: MirrorStore; onSyncNow: () => void }) {
+interface HistoryProps {
+  store: MirrorStore;
+  onSyncNow: () => void;
+  gateway: WebsiteGateway;
+  user: string;
+  onDeleted: (ids: string[]) => void;
+}
+
+export function History({ store, onSyncNow, gateway, user, onDeleted }: HistoryProps) {
   const mirror = useMirror(store);
   const [sort, setSort] = useState<Sort>({ column: "played", descending: true });
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [deselected, setDeselected] = useState<ReadonlySet<string>>(new Set());
+  const [deleting, setDeleting] = useState<Scrobble[] | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewport, setViewport] = useState(0);
 
@@ -118,65 +129,88 @@ export function History({ store, onSyncNow }: { store: MirrorStore; onSyncNow: (
     </th>
   );
 
+  const selection = () => matches.filter((s) => !deselected.has(s.id));
+
   return (
-    <div className="history">
-      <div className="head">
-        <h1>{h.heading}</h1>
-        <dl className="rs-facts">
-          <div><dt>{h.scrobbles}</dt><dd>{formatCount(rows.length)}</dd></div>
-          {oldest !== null && <div><dt>{h.since}</dt><dd>{formatDate(oldest)}</dd></div>}
-          {filtering && <div><dt>{h.matching}</dt><dd>{formatCount(matches.length)}</dd></div>}
-          {filtering && <div><dt>{h.selected}</dt><dd>{formatCount(selectedCount)}</dd></div>}
-        </dl>
-        <div className="sync">
-          <span className="rs-hint rs-num" role="status">{status}</span>
-          <button type="button" className="rs-btn" onClick={onSyncNow} disabled={mirror.phase === "syncing" || mirror.phase === "waiting"}>
-            {h.syncNow}
-          </button>
+    <div className={deleting ? "history with-preview" : "history"}>
+      <div className="history-main">
+        <div className="head">
+          <h1>{h.heading}</h1>
+          <dl className="rs-facts">
+            <div><dt>{h.scrobbles}</dt><dd>{formatCount(rows.length)}</dd></div>
+            {oldest !== null && <div><dt>{h.since}</dt><dd>{formatDate(oldest)}</dd></div>}
+            {filtering && <div><dt>{h.matching}</dt><dd>{formatCount(matches.length)}</dd></div>}
+            {filtering && <div><dt>{h.selected}</dt><dd>{formatCount(selectedCount)}</dd></div>}
+          </dl>
+          <div className="sync">
+            <span className="rs-hint rs-num" role="status">{status}</span>
+            <button type="button" className="rs-btn" onClick={onSyncNow} disabled={mirror.phase === "syncing" || mirror.phase === "waiting"}>
+              {h.syncNow}
+            </button>
+          </div>
+        </div>
+        <FilterBar conditions={conditions} onChange={changeConditions} />
+        {filtering && selectedCount > 0 && !deleting && (
+          <div className="selection-actions" role="toolbar" aria-label={strings.actions.label}>
+            <button type="button" className="rs-btn" onClick={() => setDeleting(selection())}>
+              {strings.actions.delete(strings.preview.count(selectedCount))}
+            </button>
+          </div>
+        )}
+        {rows.length === 0 && mirror.phase !== "idle" && <p className="first-sync rs-hint">{h.firstSync}</p>}
+        {filtering && matches.length === 0 && (
+          <div className="rs-empty"><b>{h.noMatches}</b>{h.noMatchesHint}</div>
+        )}
+        <div className="scroll" onScroll={onScroll} hidden={filtering && matches.length === 0}>
+          <table className="rs-table" aria-label={h.table} aria-rowcount={matches.length + 1}>
+            <thead>
+              <tr>
+                {filtering && (
+                  <th className="rs-col-check">
+                    <SelectAll total={matches.length} selected={selectedCount} onToggle={toggleAll} />
+                  </th>
+                )}
+                {header("played", "rs-col-time")}
+                {header("artist", "col-artist")}
+                {header("track")}
+                {header("album", "col-album")}
+              </tr>
+            </thead>
+            <tbody>
+              {first > 0 && <tr aria-hidden="true" style={{ height: first * ROW_HEIGHT }} />}
+              {matches.slice(first, last).map((s, i) => {
+                const selected = filtering && !deselected.has(s.id);
+                return (
+                  <tr key={s.id} aria-rowindex={first + i + 2} aria-selected={filtering ? selected : undefined}>
+                    {filtering && (
+                      <td className="rs-col-check">
+                        <input className="rs-check" type="checkbox" checked={selected} aria-label={h.selectRow(`${s.artist} — ${s.track}, ${formatPlayed(s.timestamp)}`)} onChange={() => toggleRow(s.id)} />
+                      </td>
+                    )}
+                    <td className="rs-col-time"><time dateTime={new Date(s.timestamp * 1000).toISOString()}>{formatPlayed(s.timestamp)}</time></td>
+                    <td>{marked(s.artist, markFor.artist)}</td>
+                    <td>{marked(s.track, markFor.track)}</td>
+                    <td>{marked(s.album, markFor.album)}</td>
+                  </tr>
+                );
+              })}
+              {last < matches.length && <tr aria-hidden="true" style={{ height: (matches.length - last) * ROW_HEIGHT }} />}
+            </tbody>
+          </table>
         </div>
       </div>
-      <FilterBar conditions={conditions} onChange={changeConditions} />
-      {rows.length === 0 && mirror.phase !== "idle" && <p className="first-sync rs-hint">{h.firstSync}</p>}
-      {filtering && matches.length === 0 && (
-        <div className="rs-empty"><b>{h.noMatches}</b>{h.noMatchesHint}</div>
+      {deleting && (
+        <DeletePreview
+          targets={deleting}
+          gateway={gateway}
+          user={user}
+          onDeleted={onDeleted}
+          onClose={() => {
+            setDeleting(null);
+            setDeselected(new Set());
+          }}
+        />
       )}
-      <div className="scroll" onScroll={onScroll} hidden={filtering && matches.length === 0}>
-        <table className="rs-table" aria-label={h.table} aria-rowcount={matches.length + 1}>
-          <thead>
-            <tr>
-              {filtering && (
-                <th className="rs-col-check">
-                  <SelectAll total={matches.length} selected={selectedCount} onToggle={toggleAll} />
-                </th>
-              )}
-              {header("played", "rs-col-time")}
-              {header("artist", "col-artist")}
-              {header("track")}
-              {header("album", "col-album")}
-            </tr>
-          </thead>
-          <tbody>
-            {first > 0 && <tr aria-hidden="true" style={{ height: first * ROW_HEIGHT }} />}
-            {matches.slice(first, last).map((s, i) => {
-              const selected = filtering && !deselected.has(s.id);
-              return (
-                <tr key={s.id} aria-rowindex={first + i + 2} aria-selected={filtering ? selected : undefined}>
-                  {filtering && (
-                    <td className="rs-col-check">
-                      <input className="rs-check" type="checkbox" checked={selected} aria-label={h.selectRow(`${s.artist} — ${s.track}, ${formatPlayed(s.timestamp)}`)} onChange={() => toggleRow(s.id)} />
-                    </td>
-                  )}
-                  <td className="rs-col-time"><time dateTime={new Date(s.timestamp * 1000).toISOString()}>{formatPlayed(s.timestamp)}</time></td>
-                  <td>{marked(s.artist, markFor.artist)}</td>
-                  <td>{marked(s.track, markFor.track)}</td>
-                  <td>{marked(s.album, markFor.album)}</td>
-                </tr>
-              );
-            })}
-            {last < matches.length && <tr aria-hidden="true" style={{ height: (matches.length - last) * ROW_HEIGHT }} />}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }

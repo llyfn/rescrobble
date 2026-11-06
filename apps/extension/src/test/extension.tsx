@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 import { App } from "../App.tsx";
+import type { WebsiteGateway } from "../website/gateway.ts";
+import { FakeLastFmWebsite } from "./fakeWebsite.ts";
 import { BACKEND, server } from "./server.ts";
 
 export const REDIRECT = "https://mnbkmonfmoloodikmopdlohjgdehfkep.chromiumapp.org/lastfm";
@@ -41,15 +43,15 @@ export async function storeSession(username = "rj", token = "rescrobble-token") 
   await fakeBrowser.storage.local.set({ session: { username, token } });
 }
 
-export function renderApp() {
+export function renderApp(gateway: WebsiteGateway = new FakeLastFmWebsite([])) {
   const user = userEvent.setup();
-  return { user, ...render(<App />) };
+  return { user, ...render(<App gateway={gateway} />) };
 }
 
-export async function renderSignedIn(pro: boolean | null = true) {
+export async function renderSignedIn(pro: boolean | null = true, gateway?: WebsiteGateway) {
   await storeSession();
   const backend = backendFor("rj", pro);
-  const view = renderApp();
+  const view = renderApp(gateway);
   await screen.findByRole("navigation", { name: "Main" });
   return { ...view, backend };
 }

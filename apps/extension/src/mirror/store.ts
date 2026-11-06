@@ -24,13 +24,18 @@ export class MirrorStore {
 
   getSnapshot = () => this.snapshot;
 
-  update(change: Partial<Omit<MirrorSnapshot, "version" | "scrobbles">> & { add?: Scrobble[]; replaceAll?: Scrobble[] }) {
-    const { add, replaceAll, ...rest } = change;
+  update(change: Partial<Omit<MirrorSnapshot, "version" | "scrobbles">> & { add?: Scrobble[]; replaceAll?: Scrobble[]; remove?: string[] }) {
+    const { add, replaceAll, remove, ...rest } = change;
     let scrobbles = this.snapshot.scrobbles;
     if (replaceAll) scrobbles = new Map(replaceAll.map((s) => [s.id, s]));
     if (add?.length) {
       const next = new Map(scrobbles);
       for (const s of add) next.set(s.id, s);
+      scrobbles = next;
+    }
+    if (remove?.length) {
+      const next = new Map(scrobbles);
+      for (const id of remove) next.delete(id);
       scrobbles = next;
     }
     this.snapshot = { ...this.snapshot, ...rest, scrobbles, version: this.snapshot.version + 1 };

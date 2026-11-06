@@ -64,6 +64,30 @@ export const strings = {
     chipDuplicates: (seconds: number) => `Duplicates within ${seconds} s`,
     invalid: (message: string) => `Not a valid regex: ${message}`,
   },
+  actions: {
+    label: "Actions for the selection",
+    delete: (n: string) => `Delete ${n}`,
+  },
+  preview: {
+    label: "Preview",
+    deleteHeading: (n: string) => `Delete ${n}`,
+    count: (n: number) => (n === 1 ? "1 scrobble" : `${n.toLocaleString("en-GB")} scrobbles`),
+    irreversible: (n: number, total: number) =>
+      `${n === total ? "All of these are" : `${n.toLocaleString("en-GB")} of these are`} older than 14 days. Deleting them can't be undone, because Last.fm won't accept them again.`,
+    irreversibleTag: "Can't be undone",
+    confirmDelete: (n: string) => `Delete ${n}`,
+    cancel: "Cancel",
+    deleting: (done: number, total: number) => `Deleting ${done} of ${total}`,
+    backgroundTab: "rescrobble opened last.fm in a background tab to make these changes with your own login. Leave it open until this finishes.",
+    status: { queued: "Queued", done: "Deleted", notFound: "Not found", failed: "Failed" },
+    summary: (done: number, notFound: number, failed: number) =>
+      [`${done.toLocaleString("en-GB")} deleted`, notFound ? `${notFound} not found` : "", failed ? `${failed} failed` : ""].filter(Boolean).join(" · "),
+    stopped: {
+      loggedOut: "Log in to last.fm in this browser, then try again.",
+      blocked: "Last.fm is limiting requests from your network. Try again in about 10 minutes.",
+    } as Record<string, string>,
+    close: "Done",
+  },
   settings: {
     heading: "Settings",
     rebuild: "Rebuild Mirror",
