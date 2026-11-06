@@ -23,3 +23,14 @@ html, body, #root { height: 100%; }
 .settings section { display: grid; gap: var(--rs-space-2); justify-items: start; }
 .settings p { margin: 0; }
 .history .rs-col-time { width: 176px; }
+.history .filters { padding: var(--rs-space-3) var(--rs-space-6); background: var(--rs-surface); border-bottom: var(--rs-hairline) solid var(--rs-line); display: grid; gap: var(--rs-space-3); }
+.history .chips { display: flex; flex-wrap: wrap; gap: var(--rs-space-2); align-items: center; }
+.history .rs-chip.invalid { border-color: var(--rs-danger); }
+.history .chip-error { padding: 0 var(--rs-space-2); }
+.filter-editor { display: flex; flex-wrap: wrap; align-items: end; gap: var(--rs-space-3); }
+.filter-editor .rs-field { min-width: 160px; }
+.filter-editor .case { display: flex; align-items: center; gap: var(--rs-space-2); min-height: var(--rs-control); font: var(--rs-text-data); }
+.filter-editor .actions { display: flex; gap: var(--rs-space-2); }
+.history .rs-empty { background: var(--rs-surface); flex: 1; }
+.history .scroll[hidden] { display: none; }
+mark.match { color: inherit; background: color-mix(in oklab, var(--rs-ink) 9%, transparent); padding: 0 2px; }
