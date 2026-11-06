@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import type { Result, ScrobbleRef, TrackOnSite, WebsiteGateway } from "./gateway.ts";
+import type { NewValues, Result, ScrobbleRef, SiteScrobble, TrackOnSite, WebsiteGateway } from "./gateway.ts";
 import { SITE } from "./lastfmPages.ts";
 import type { SiteRequest, SiteResponse } from "./messages.ts";
 
@@ -35,6 +35,10 @@ export class TabGateway implements WebsiteGateway {
 
   deleteScrobble(user: string, scrobble: ScrobbleRef): Promise<Result> {
     return this.send({ target: "rescrobble-site", op: "deleteScrobble", user, scrobble });
+  }
+
+  editScrobble(user: string, original: SiteScrobble, updated: NewValues, editAll: boolean): Promise<Result> {
+    return this.send({ target: "rescrobble-site", op: "editScrobble", user, original, updated, editAll });
   }
 
   private async send(request: SiteRequest): Promise<SiteResponse> {

@@ -50,3 +50,12 @@ mark.match { color: inherit; background: color-mix(in oklab, var(--rs-ink) 9%, t
 .preview footer { display: grid; gap: var(--rs-space-2); padding: var(--rs-space-4) var(--rs-space-5) var(--rs-space-5); border-top: var(--rs-hairline) solid var(--rs-line); }
 .preview footer p { margin: 0; }
 .preview .records .secondary { color: var(--rs-ink-2); font: var(--rs-text-small); overflow-wrap: anywhere; }
+.preview .builder { display: grid; gap: var(--rs-space-3); justify-items: start; }
+.preview .change { display: flex; flex-wrap: wrap; align-items: end; gap: var(--rs-space-2); margin: 0; padding: 0 0 var(--rs-space-3); border: 0; border-bottom: var(--rs-hairline) solid var(--rs-line-soft); width: 100%; }
+.preview .change .rs-field { flex: 1 1 140px; }
+.preview .change .check { display: flex; align-items: center; gap: var(--rs-space-2); min-height: var(--rs-control); font: var(--rs-text-data); }
+.preview .change .remove { padding: 0 var(--rs-space-2); }
+.preview .change [role="alert"] { flex-basis: 100%; }
+.preview .field-change { display: block; }
+.preview .field-change .rs-label { margin-right: var(--rs-space-2); }
+.preview .empty-preview { margin: 0; padding: var(--rs-space-4) var(--rs-space-5); }

@@ -62,6 +62,13 @@ export class MirrorDb {
     await done(tx);
   }
 
+  async put(scrobbles: Scrobble[]): Promise<void> {
+    const tx = this.db.transaction("scrobbles", "readwrite");
+    const store = tx.objectStore("scrobbles");
+    for (const s of scrobbles) store.put(s);
+    await done(tx);
+  }
+
   async remove(ids: string[]): Promise<void> {
     const tx = this.db.transaction("scrobbles", "readwrite");
     const store = tx.objectStore("scrobbles");

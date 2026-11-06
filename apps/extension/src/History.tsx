@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode, type UIEvent } from "react";
 import { applyFilter, matchedRange, type Condition, type TextField } from "@rescrobble/core";
-import { DeletePreview } from "./DeletePreview.tsx";
+import type { EditableValues } from "@rescrobble/core";
+import { JobPreview } from "./JobPreview.tsx";
 import { FilterBar } from "./FilterBar.tsx";
 import type { WebsiteGateway } from "./website/gateway.ts";
 import type { Scrobble } from "./mirror/db.ts";
@@ -52,15 +53,16 @@ interface HistoryProps {
   onSyncNow: () => void;
   gateway: WebsiteGateway;
   user: string;
-  onDeleted: (ids: string[]) => void;
+  pro: boolean | null;
+  onApplied: (target: Scrobble, after?: EditableValues) => void;
 }
 
-export function History({ store, onSyncNow, gateway, user, onDeleted }: HistoryProps) {
+export function History({ store, onSyncNow, gateway, user, pro, onApplied }: HistoryProps) {
   const mirror = useMirror(store);
   const [sort, setSort] = useState<Sort>({ column: "played", descending: true });
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [deselected, setDeselected] = useState<ReadonlySet<string>>(new Set());
-  const [deleting, setDeleting] = useState<Scrobble[] | null>(null);
+  const [job, setJob] = useState<{ kind: "delete" | "edit"; targets: Scrobble[] } | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewport, setViewport] = useState(0);
 
@@ -132,7 +134,7 @@ export function History({ store, onSyncNow, gateway, user, onDeleted }: HistoryP
   const selection = () => matches.filter((s) => !deselected.has(s.id));
 
   return (
-    <div className={deleting ? "history with-preview" : "history"}>
+    <div className={job ? "history with-preview" : "history"}>
       <div className="history-main">
         <div className="head">
           <h1>{h.heading}</h1>
@@ -150,11 +152,15 @@ export function History({ store, onSyncNow, gateway, user, onDeleted }: HistoryP
           </div>
         </div>
         <FilterBar conditions={conditions} onChange={changeConditions} />
-        {filtering && selectedCount > 0 && !deleting && (
+        {filtering && selectedCount > 0 && !job && (
           <div className="selection-actions" role="toolbar" aria-label={strings.actions.label}>
-            <button type="button" className="rs-btn" onClick={() => setDeleting(selection())}>
+            <button type="button" className="rs-btn" onClick={() => setJob({ kind: "edit", targets: selection() })} disabled={pro === false}>
+              {strings.actions.edit(strings.preview.count(selectedCount))}
+            </button>
+            <button type="button" className="rs-btn" onClick={() => setJob({ kind: "delete", targets: selection() })}>
               {strings.actions.delete(strings.preview.count(selectedCount))}
             </button>
+            {pro === false && <span className="rs-hint">{strings.actions.needsPro}</span>}
           </div>
         )}
         {rows.length === 0 && mirror.phase !== "idle" && <p className="first-sync rs-hint">{h.firstSync}</p>}
@@ -199,14 +205,15 @@ export function History({ store, onSyncNow, gateway, user, onDeleted }: HistoryP
           </table>
         </div>
       </div>
-      {deleting && (
-        <DeletePreview
-          targets={deleting}
+      {job && (
+        <JobPreview
+          kind={job.kind}
+          targets={job.targets}
           gateway={gateway}
           user={user}
-          onDeleted={onDeleted}
+          onApplied={onApplied}
           onClose={() => {
-            setDeleting(null);
+            setJob(null);
             setDeselected(new Set());
           }}
         />

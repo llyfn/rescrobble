@@ -24,9 +24,10 @@ export default defineContentScript({
 
     browser.runtime.onMessage.addListener((message: SiteRequest, _sender, sendResponse: (r: SiteResponse) => void) => {
       if (message?.target !== "rescrobble-site") return;
-      const reply = message.op === "listTrack"
-        ? site.listTrack(message.user, message.artist, message.track)
-        : site.deleteScrobble(message.user, message.scrobble);
+      const reply =
+        message.op === "listTrack" ? site.listTrack(message.user, message.artist, message.track)
+        : message.op === "deleteScrobble" ? site.deleteScrobble(message.user, message.scrobble)
+        : site.editScrobble(message.user, message.original, message.updated, message.editAll);
       reply
         .catch((e: unknown): SiteResponse => ({ ok: false, reason: "unexpected", detail: String(e) }))
         .then(sendResponse);

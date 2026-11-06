@@ -29,9 +29,21 @@ export interface ScrobbleRef {
   timestamp: number;
 }
 
+export interface NewValues {
+  artist: string;
+  track: string;
+  album: string;
+  albumArtist: string;
+}
+
 /** The narrow interface the app uses to change Scrobbles through the last.fm website. */
 export interface WebsiteGateway {
   /** Every Scrobble of one Track in `user`'s library, across all pages. */
   listTrack(user: string, artist: string, track: string): Promise<Result<TrackOnSite>>;
   deleteScrobble(user: string, scrobble: ScrobbleRef): Promise<Result>;
+  /**
+   * Edits one Scrobble, identified by its exact current values. With `editAll`, Last.fm applies the
+   * edit to every past Scrobble carrying those same values.
+   */
+  editScrobble(user: string, original: SiteScrobble, updated: NewValues, editAll: boolean): Promise<Result>;
 }

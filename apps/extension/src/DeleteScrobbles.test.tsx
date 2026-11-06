@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import { formatPlayedShort } from "./format.ts";
-import { jobTiming } from "./jobs/deleteJob.ts";
+import { jobTiming } from "./jobs/runJob.ts";
 import { lastFmHistory, type Play } from "./test/lastfmHistory.ts";
 import { FakeLastFmWebsite, siteScrobble } from "./test/fakeWebsite.ts";
 import { renderSignedIn } from "./test/extension.tsx";

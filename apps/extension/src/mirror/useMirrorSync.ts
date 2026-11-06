@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { LastFmReader } from "@rescrobble/core";
 import { loadApiKey } from "../backend.ts";
-import { MirrorDb } from "./db.ts";
+import { MirrorDb, type Scrobble } from "./db.ts";
 import { MirrorStore } from "./store.ts";
 import { MirrorSync } from "./sync.ts";
 
@@ -34,6 +34,12 @@ export function useMirrorSync(username: string) {
     store,
     syncNow: () => void sync?.start().catch(() => undefined),
     rebuild: () => void sync?.rebuild().catch(() => undefined),
+    /** Swaps a Scrobble for its edited version; its id changes when the artist or track does. */
+    replace: async (oldId: string, updated: Scrobble) => {
+      store.update({ remove: [oldId], add: [updated] });
+      await dbRef.current?.remove([oldId]);
+      await dbRef.current?.put([updated]);
+    },
     /** Drops Scrobbles that no longer exist on Last.fm from the Mirror. */
     remove: async (ids: string[]) => {
       store.update({ remove: ids });

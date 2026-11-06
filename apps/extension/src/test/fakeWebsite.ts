@@ -1,10 +1,13 @@
-import type { Failure, Result, ScrobbleRef, SiteScrobble, TrackOnSite, WebsiteGateway } from "../website/gateway.ts";
+import type { Failure, NewValues, Result, ScrobbleRef, SiteScrobble, TrackOnSite, WebsiteGateway } from "../website/gateway.ts";
 
 export interface GatewayCall {
-  op: "listTrack" | "deleteScrobble";
+  op: "listTrack" | "deleteScrobble" | "editScrobble";
   artist: string;
   track: string;
   timestamp?: number;
+  updated?: NewValues;
+  original?: SiteScrobble;
+  editAll?: boolean;
   at: number;
 }
 
@@ -41,6 +44,19 @@ export class FakeLastFmWebsite implements WebsiteGateway {
     const before = this.library.length;
     this.library = this.library.filter((s) => !(s.timestamp === ref.timestamp && s.track === ref.track && s.artist === ref.artist));
     return this.library.length < before ? { ok: true } : { ok: false, reason: "notFound" };
+  }
+
+  async editScrobble(_user: string, original: SiteScrobble, updated: NewValues, editAll: boolean): Promise<Result> {
+    this.calls.push({ op: "editScrobble", artist: original.artist, track: original.track, timestamp: original.timestamp, original, updated, editAll, at: Date.now() });
+    const failure = this.takeFailure("editScrobble");
+    if (failure) return failure;
+    if (!this.pro) return { ok: false, reason: "editUnavailable" };
+    const matches = (s: SiteScrobble) =>
+      s.artist === original.artist && s.track === original.track && s.album === original.album && s.albumArtist === original.albumArtist
+      && (editAll || s.timestamp === original.timestamp);
+    let edited = 0;
+    this.library = this.library.map((s) => (matches(s) ? (edited++, { ...s, ...updated }) : s));
+    return edited > 0 ? { ok: true } : { ok: false, reason: "notFound" };
   }
 }
 

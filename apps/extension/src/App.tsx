@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AddScrobbles, ScrobbleTransportContext } from "@rescrobble/scrobble-ui";
 import { createApi, loadApiKey } from "./backend.ts";
 import { History } from "./History.tsx";
+import { scrobbleId } from "./mirror/db.ts";
 import { useMirrorSync } from "./mirror/useMirrorSync.ts";
 import { Settings } from "./Settings.tsx";
 import type { WebsiteGateway } from "./website/gateway.ts";
@@ -132,7 +133,18 @@ function Shell({ session, pro, transport, gateway, onSignOut }: ShellProps) {
       </nav>
       <main className="work">
         {screen === "history" && (
-          <History store={mirror.store} onSyncNow={mirror.syncNow} gateway={gateway} user={session.username} onDeleted={(ids) => void mirror.remove(ids)} />
+          <History
+            store={mirror.store}
+            onSyncNow={mirror.syncNow}
+            gateway={gateway}
+            user={session.username}
+            pro={pro}
+            onApplied={(target, after) => {
+              if (!after) return void mirror.remove([target.id]);
+              const updated = { ...target, artist: after.artist, track: after.track, album: after.album };
+              void mirror.replace(target.id, { ...updated, id: scrobbleId(updated) });
+            }}
+          />
         )}
         {screen === "add" && (
           <ScrobbleTransportContext value={transport}>

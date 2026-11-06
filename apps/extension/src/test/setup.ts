@@ -5,7 +5,7 @@ import { fakeBrowser } from "wxt/testing/fake-browser";
 import { resetLastFmReader } from "@rescrobble/scrobble-ui";
 import { IDBFactory } from "fake-indexeddb";
 import { syncTiming } from "../mirror/sync.ts";
-import { jobTiming } from "../jobs/deleteJob.ts";
+import { jobTiming } from "../jobs/runJob.ts";
 import { server } from "./server.ts";
 
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));

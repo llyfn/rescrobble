@@ -120,3 +120,51 @@ describe("deleting through the website", () => {
     expect(await lastfm.deleteScrobble("rj", { artist: "Radiohead", track: "Airbag - Remastered", timestamp: 1 })).toEqual({ ok: false, reason: "blocked" });
   });
 });
+
+describe("editing through the website", () => {
+  const original = { artist: "Radiohead", track: "Airbag - Remastered", album: "OK Computer OKNOTOK 1997 2017", albumArtist: "Radiohead", timestamp: 1790000300 };
+  const updated = { artist: "Radiohead", track: "Airbag", album: "OK Computer", albumArtist: "Radiohead" };
+
+  function editEndpoint(html: string, status = 200) {
+    const posts: { url: string; body: URLSearchParams }[] = [];
+    server.use(http.post("https://www.last.fm/user/rj/library/edit", async ({ request }) => {
+      posts.push({ url: request.url, body: new URLSearchParams(await request.text()) });
+      return new HttpResponse(html, { status, headers: { "Content-Type": "text/html" } });
+    }));
+    return posts;
+  }
+
+  it("posts the edit form with the exact original values and the new ones", async () => {
+    servePages([libraryPage("rj", [row(1790000300)])]);
+    const posts = editEndpoint('<div><p class="big-modal-alert alert-success">Success</p></div>');
+    const lastfm = site();
+    await lastfm.listTrack("rj", "Radiohead", "Airbag - Remastered");
+
+    expect(await lastfm.editScrobble("rj", original, updated, false)).toEqual({ ok: true });
+    expect(new URL(posts[0]!.url).searchParams.get("edited-variation")).toBe("library-track-scrobble");
+    expect(Object.fromEntries(posts[0]!.body)).toEqual({
+      csrfmiddlewaretoken: FIXTURE_CSRF,
+      artist_name: "Radiohead", artist_name_original: "Radiohead",
+      track_name: "Airbag", track_name_original: "Airbag - Remastered",
+      album_name: "OK Computer", album_name_original: "OK Computer OKNOTOK 1997 2017",
+      album_artist_name: "Radiohead", album_artist_name_original: "Radiohead",
+      timestamp: "1790000300", submit: "edit-scrobble", ajax: "1",
+    });
+  });
+
+  it("asks Last.fm to apply it to every matching Scrobble with edit_all", async () => {
+    const posts = editEndpoint('<p class="alert-success">Success</p>');
+
+    await new LastFmSite((i, init) => fetch(i, init), () => "cookie").editScrobble("rj", original, updated, true);
+
+    expect(posts[0]!.body.get("edit_all")).toBe("1");
+  });
+
+  it("reports an edit Last.fm didn't confirm, with its message", async () => {
+    editEndpoint('<div class="alert alert-danger">Something went wrong</div>');
+
+    const result = await new LastFmSite((i, init) => fetch(i, init), () => "cookie").editScrobble("rj", original, updated, false);
+
+    expect(result).toEqual({ ok: false, reason: "unexpected", detail: "Something went wrong" });
+  });
+});

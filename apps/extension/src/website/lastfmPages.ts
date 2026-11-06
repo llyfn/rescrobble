@@ -1,4 +1,4 @@
-import type { Failure, Result, ScrobbleRef, SiteScrobble, TrackOnSite } from "./gateway.ts";
+import type { Failure, NewValues, Result, ScrobbleRef, SiteScrobble, TrackOnSite } from "./gateway.ts";
 
 export const SITE = "https://www.last.fm";
 
@@ -133,5 +133,41 @@ export class LastFmSite {
     if (failure) return failure;
     const answer = (await response.json().catch(() => null)) as { result?: boolean } | null;
     return answer?.result === true ? { ok: true } : { ok: false, reason: "unexpected", detail: "delete was not confirmed" };
+  }
+
+  /**
+   * Posts the website's edit form. The `_original` fields identify the Scrobble as it is now; the
+   * timestamp never changes.
+   */
+  async editScrobble(user: string, original: SiteScrobble, updated: NewValues, editAll: boolean): Promise<Result> {
+    const csrf = this.csrf ?? this.cookieCsrf();
+    if (!csrf) return { ok: false, reason: "loggedOut" };
+    const body = new URLSearchParams({
+      csrfmiddlewaretoken: csrf,
+      artist_name: updated.artist,
+      artist_name_original: original.artist,
+      track_name: updated.track,
+      track_name_original: original.track,
+      album_name: updated.album,
+      album_name_original: original.album,
+      album_artist_name: updated.albumArtist,
+      album_artist_name_original: original.albumArtist,
+      timestamp: String(original.timestamp),
+      submit: "edit-scrobble",
+      ajax: "1",
+    });
+    if (editAll) body.set("edit_all", "1");
+    const response = await this.fetchFn(`${SITE}/user/${pathName(user)}/library/edit?edited-variation=library-track-scrobble`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8", "X-Requested-With": "XMLHttpRequest" },
+      body,
+    });
+    const failure = failureFor(response.status);
+    if (failure) return failure;
+    const html = await response.text();
+    if (html.includes("alert-success")) return { ok: true };
+    const message = new DOMParser().parseFromString(html, "text/html").querySelector(".alert, .form-error, .alert-danger")?.textContent?.trim();
+    return { ok: false, reason: "unexpected", detail: message || "edit was not confirmed" };
   }
 }
