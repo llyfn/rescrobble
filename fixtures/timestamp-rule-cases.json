@@ -1,0 +1,12 @@
+{
+  "description": "Shared cases for the Scrobble timestamp rule. Times are Unix seconds. 'now' is 2026-01-15T12:00:00Z; the window is 14 days.",
+  "cases": [
+    { "name": "exactly now is acceptable", "now": 1768478400, "timestamp": 1768478400, "expected": "acceptable" },
+    { "name": "an hour ago is acceptable", "now": 1768478400, "timestamp": 1768474800, "expected": "acceptable" },
+    { "name": "exactly 14 days ago is acceptable", "now": 1768478400, "timestamp": 1767268800, "expected": "acceptable" },
+    { "name": "one second past 14 days ago is too old", "now": 1768478400, "timestamp": 1767268799, "expected": "tooOld" },
+    { "name": "years ago is too old", "now": 1768478400, "timestamp": 946684800, "expected": "tooOld" },
+    { "name": "one second in the future is in the future", "now": 1768478400, "timestamp": 1768478401, "expected": "inFuture" },
+    { "name": "a day in the future is in the future", "now": 1768478400, "timestamp": 1768564800, "expected": "inFuture" }
+  ]
+}
