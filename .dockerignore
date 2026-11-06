@@ -1,0 +1,11 @@
+**/build/
+**/.gradle/
+**/.kotlin/
+.git/
+.idea/
+.scratch/
+.claude/
+docs/
+*.md
+.env
+.env.*
