@@ -1,5 +1,7 @@
-import { useId, useRef, useState, type FormEvent } from "react";
-import { checkTimestamp } from "@rescrobble/core";
+import { useCallback, useId, useRef, useState, type FormEvent } from "react";
+import { checkTimestamp, type TrackMatch } from "@rescrobble/core";
+import { Combobox } from "./Combobox.tsx";
+import { useLastFmReader } from "./lastfm.ts";
 import { useApi } from "./api.ts";
 import { describeFailure } from "./failures.ts";
 import { submitScrobbles, type Outcome, type ScrobbleEntry } from "./scrobbles.ts";
@@ -35,6 +37,12 @@ export function TrackForm({ onResults }: { onResults: (entries: ScrobbleEntry[],
   const [failure, setFailure] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
+  const reader = useLastFmReader();
+  const searchTracks = useCallback(
+    async (query: string, signal: AbortSignal): Promise<TrackMatch[]> =>
+      reader ? reader.searchTracks(query, { artist: artist.trim() || undefined, signal }) : [],
+    [reader, artist],
+  );
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -94,7 +102,26 @@ export function TrackForm({ onResults }: { onResults: (entries: ScrobbleEntry[],
         </div>
       )}
       {field("artist", t.artist, artist, setArtist)}
-      {field("track", t.track, track, setTrack)}
+      <Combobox
+        id={`${id}-track`}
+        name="track"
+        label={t.track}
+        value={track}
+        onChange={setTrack}
+        search={searchTracks}
+        onPick={(match) => {
+          setArtist(match.artist);
+          setTrack(match.track);
+        }}
+        optionKey={(match) => `${match.artist}\u0000${match.track}`}
+        renderOption={(match) => (
+          <>
+            <span>{match.track}</span>
+            <span className="rs-option__secondary">{match.artist}</span>
+          </>
+        )}
+        error={errors.track}
+      />
       {field("album", t.album, album, setAlbum, { placeholder: t.albumHint })}
       {field("playedAt", t.playedAt, playedAt, setPlayedAt, { type: "datetime-local", className: "rs-input rs-num" })}
       <button className="rs-btn rs-btn--primary rs-btn--block" type="submit" aria-busy={busy || undefined}>{t.submit}</button>

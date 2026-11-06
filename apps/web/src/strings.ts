@@ -3,6 +3,7 @@ export const strings = {
   brand: "rescrobble",
   loading: "Loading",
   signOut: "Sign out",
+  suggestions: (field: string) => `${field} suggestions`,
   sessionEnded: "Your Last.fm session has ended. Log in again.",
   signedOut: {
     heading: "Add the plays Last.fm missed",
