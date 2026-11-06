@@ -1,10 +1,14 @@
 **/build/
+**/dist/
+**/node_modules/
 **/.gradle/
 **/.kotlin/
 .git/
 .idea/
 .scratch/
 .claude/
+.impeccable/
+design/
 docs/
 *.md
 .env
