@@ -1,6 +1,7 @@
 import { useId, useRef, useState, type FormEvent } from "react";
 import { checkTimestamp } from "@rescrobble/core";
 import { useApi } from "./api.ts";
+import { describeFailure } from "./failures.ts";
 import { submitScrobbles, type Outcome, type ScrobbleEntry } from "./scrobbles.ts";
 import { strings } from "./strings.ts";
 import { fromLocalInputValue, nowSeconds, toLocalInputValue } from "./time.ts";
@@ -53,7 +54,7 @@ export function TrackForm({ onResults }: { onResults: (entries: ScrobbleEntry[],
     setBusy(false);
 
     if (!result.ok) {
-      if (result.status !== 401) setFailure(strings.failure.generic);
+      setFailure(describeFailure(result));
       return;
     }
     onResults([entry], result.outcomes);

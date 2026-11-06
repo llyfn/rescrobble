@@ -32,6 +32,10 @@ export const strings = {
   },
   failure: {
     generic: "Something went wrong. Try again.",
+    tooManyRequests: (seconds: number) => `Too many requests. Try again in ${seconds} ${seconds === 1 ? "second" : "seconds"}.`,
+    dailyLimitHours: (hours: number) => `You've reached today's scrobble allowance. Try again in about ${hours} ${hours === 1 ? "hour" : "hours"}.`,
+    dailyLimitMinutes: (minutes: number) => `You've reached today's scrobble allowance. Try again in about ${minutes} ${minutes === 1 ? "minute" : "minutes"}.`,
+    unavailable: "Last.fm isn't responding. Try again in a minute.",
   },
   session: {
     heading: "This session",
