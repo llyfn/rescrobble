@@ -1,4 +1,4 @@
-import type { Api } from "./api.ts";
+import type { Api } from "./context.ts";
 
 export interface ScrobbleEntry {
   artist: string;

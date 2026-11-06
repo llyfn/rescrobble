@@ -1,8 +1,6 @@
-import { createContext, useContext } from "react";
+import type { Api } from "@rescrobble/scrobble-ui";
 
-/** Calls the rescrobble backend. Any 401 ends the session in the UI before the caller sees the response. */
-export type Api = (path: string, init?: RequestInit) => Promise<Response>;
-
+/** Calls the rescrobble backend with the session cookie. Any 401 ends the session in the UI before the caller sees the response. */
 export function createApi(onUnauthorized: () => void): Api {
   return async (path, init) => {
     const response = await fetch(path, init);
@@ -11,10 +9,9 @@ export function createApi(onUnauthorized: () => void): Api {
   };
 }
 
-export const ApiContext = createContext<Api | null>(null);
-
-export function useApi(): Api {
-  const api = useContext(ApiContext);
-  if (!api) throw new Error("useApi needs an ApiContext provider");
-  return api;
+export async function loadApiKey(): Promise<string> {
+  const response = await fetch("/api/config");
+  if (!response.ok) throw new Error(`config ${response.status}`);
+  const config: { lastFmApiKey: string } = await response.json();
+  return config.lastFmApiKey;
 }

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ApiContext, createApi } from "./api.ts";
+import { AddScrobbles, ScrobbleTransportContext } from "@rescrobble/scrobble-ui";
+import { createApi, loadApiKey } from "./api.ts";
 import { strings } from "./strings.ts";
 import { SignedOut } from "./SignedOut.tsx";
-import { SignedIn } from "./SignedIn.tsx";
 
 type View =
   | { kind: "loading" }
@@ -26,10 +26,11 @@ function clearSignInFailure() {
 
 export function App() {
   const [view, setView] = useState<View>({ kind: "loading" });
-  const api = useMemo(
-    () => createApi(() => setView({ kind: "signedOut", notice: strings.sessionEnded })),
+  const transport = useMemo(
+    () => ({ api: createApi(() => setView({ kind: "signedOut", notice: strings.sessionEnded })), loadApiKey }),
     [],
   );
+  const api = transport.api;
 
   useEffect(() => {
     const signedOut: View = { kind: "signedOut", notice: hasSignInFailure() ? strings.signedOut.signInFailed : undefined };
@@ -49,7 +50,7 @@ export function App() {
   }, [api]);
 
   return (
-    <ApiContext value={api}>
+    <ScrobbleTransportContext value={transport}>
       <div className="app">
         <header className="rs-topbar">
           <span className="rs-topbar__brand">{strings.brand}</span>
@@ -62,9 +63,9 @@ export function App() {
         </header>
         {view.kind === "loading" && <main className="page" aria-busy="true" aria-label={strings.loading} />}
         {view.kind === "signedOut" && <SignedOut notice={view.notice} />}
-        {view.kind === "signedIn" && <SignedIn />}
+        {view.kind === "signedIn" && <main className="page"><AddScrobbles /></main>}
         <footer className="footer">{strings.footer}</footer>
       </div>
-    </ApiContext>
+    </ScrobbleTransportContext>
   );
 }

@@ -1,6 +1,6 @@
 import { useCallback, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { checkTimestamp, timeAlbum, type Album, type AlbumMatch } from "@rescrobble/core";
-import { useApi } from "./api.ts";
+import { useTransport } from "./context.ts";
 import { Combobox } from "./Combobox.tsx";
 import { describeFailure } from "./failures.ts";
 import { useLastFmReader } from "./lastfm.ts";
@@ -24,7 +24,7 @@ function defaultStart(album: Album, included: boolean[]): string {
 }
 
 export function AlbumForm({ onResults }: { onResults: (entries: ScrobbleEntry[], outcomes: Outcome[]) => void }) {
-  const api = useApi();
+  const { api } = useTransport();
   const reader = useLastFmReader();
   const id = useId();
   const [artist, setArtist] = useState("");

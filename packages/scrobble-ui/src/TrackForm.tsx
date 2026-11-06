@@ -2,7 +2,7 @@ import { useCallback, useId, useRef, useState, type FormEvent } from "react";
 import { checkTimestamp, type TrackMatch } from "@rescrobble/core";
 import { Combobox } from "./Combobox.tsx";
 import { useLastFmReader } from "./lastfm.ts";
-import { useApi } from "./api.ts";
+import { useTransport } from "./context.ts";
 import { describeFailure } from "./failures.ts";
 import { submitScrobbles, type Outcome, type ScrobbleEntry } from "./scrobbles.ts";
 import { strings } from "./strings.ts";
@@ -27,7 +27,7 @@ function validate(artist: string, track: string, playedAt: string): { errors: Er
 }
 
 export function TrackForm({ onResults }: { onResults: (entries: ScrobbleEntry[], outcomes: Outcome[]) => void }) {
-  const api = useApi();
+  const { api } = useTransport();
   const id = useId();
   const [artist, setArtist] = useState("");
   const [track, setTrack] = useState("");

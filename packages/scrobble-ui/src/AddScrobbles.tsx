@@ -18,7 +18,8 @@ function setTabInUrl(tab: Tab) {
   window.history.replaceState(null, "", url);
 }
 
-export function SignedIn() {
+/** The Add scrobbles screen: Track and Album tabs, and This session. */
+export function AddScrobbles() {
   const session = useSessionResults();
   const [tab, setTab] = useState<Tab>(tabFromUrl);
   const choose = (next: Tab) => {
@@ -27,8 +28,8 @@ export function SignedIn() {
   };
 
   return (
-    <main className="page">
-      <h1>{strings.signedIn.heading}</h1>
+    <div className="add-scrobbles">
+      <h1>{strings.heading}</h1>
       <div className="rs-tabs" role="tablist" aria-label={strings.tabs.label}>
         {(["track", "album"] as const).map((name) => (
           <button
@@ -49,6 +50,6 @@ export function SignedIn() {
         {tab === "track" ? <TrackForm onResults={session.add} /> : <AlbumForm onResults={session.add} />}
       </div>
       <SessionResults results={session.results} />
-    </main>
+    </div>
   );
 }
