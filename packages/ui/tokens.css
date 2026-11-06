@@ -1,0 +1,88 @@
+/*
+ * rescrobble design tokens. Light and dark come from one definition through light-dark();
+ * the OS setting picks the theme, and [data-theme] on any element forces one.
+ */
+:root {
+  color-scheme: light dark;
+
+  /* Ground and surfaces */
+  --rs-bg: light-dark(#f6f6f4, #121416);
+  --rs-surface: light-dark(#ffffff, #181b1e);
+  --rs-surface-sunken: light-dark(#f6f6f4, #14171a);
+
+  /* Ink */
+  --rs-ink: light-dark(#16191c, #e8eaec);
+  --rs-ink-2: light-dark(#4f565c, #b3b9be);
+  --rs-ink-3: light-dark(#666c71, #8f969c);
+  --rs-ink-on-strong: light-dark(#ffffff, #121416);
+
+  /* Hairlines: all structure is drawn with these, never with shadows */
+  --rs-line: light-dark(#d4d5d1, #30363c);
+  --rs-line-soft: light-dark(#e8e9e5, #23282d);
+  --rs-line-strong: light-dark(#a9aca7, #4a525a);
+
+  /* Shell: the rail and top bar */
+  --rs-shell: light-dark(#23313a, #1a252c);
+  --rs-shell-raised: light-dark(#2e3f4a, #24333c);
+  --rs-shell-ink: light-dark(#ffffff, #f1f4f6);
+  --rs-shell-ink-2: light-dark(#b9c4cb, #a6b3bb);
+  --rs-shell-line: light-dark(#3a4b56, #2f3f49);
+
+  /* Selection: the highlighter. Reserved for selection and nothing else. */
+  --rs-select: light-dark(#f3d34a, #e9c43a);
+  --rs-select-row: light-dark(#fcf4cf, #2c2915);
+  --rs-ink-on-select: #16191c;
+
+  /* Edit record: removed and inserted values */
+  --rs-del: light-dark(#a8342b, #f08b80);
+  --rs-del-bg: light-dark(#fbebe9, #3b201d);
+  --rs-ins: light-dark(#2a6f43, #84cf9c);
+  --rs-ins-bg: light-dark(#e5f2e9, #19331f);
+
+  /* States beyond the diff */
+  --rs-warn: light-dark(#8a5a00, #e8b85a);
+  --rs-warn-bg: light-dark(#fcf2da, #352a12);
+  --rs-danger: light-dark(#a8342b, #f08b80);
+  --rs-danger-strong: light-dark(#a8342b, #b8413a);
+  --rs-ink-on-danger: #ffffff;
+
+  /* Type */
+  --rs-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", "Apple SD Gothic Neo", "Noto Sans KR", "Hiragino Sans", sans-serif;
+  --rs-text-label: 600 0.6875rem/1.3 var(--rs-font);   /* 11px uppercase field labels; the system face has no true small caps */
+  --rs-text-small: 400 0.75rem/1.45 var(--rs-font);    /* 12px notes */
+  --rs-text-data: 400 0.8125rem/1.4 var(--rs-font);    /* 13px tables, dense UI */
+  --rs-text-body: 400 0.875rem/1.5 var(--rs-font);     /* 14px body, controls */
+  --rs-text-title: 600 1rem/1.35 var(--rs-font);       /* 16px panel titles */
+  --rs-text-heading: 600 1.25rem/1.25 var(--rs-font);  /* 20px page headings */
+  --rs-label-tracking: 0.08em;
+
+  /* Space: 4px steps */
+  --rs-space-1: 4px;
+  --rs-space-2: 8px;
+  --rs-space-3: 12px;
+  --rs-space-4: 16px;
+  --rs-space-5: 20px;
+  --rs-space-6: 24px;
+  --rs-space-8: 32px;
+  --rs-space-12: 48px;
+
+  /* Sizes */
+  --rs-row: 32px;          /* dense table row */
+  --rs-control: 32px;      /* desktop control height */
+  --rs-touch: 44px;        /* minimum touch target */
+  --rs-rail: 208px;
+  --rs-panel: 400px;
+  --rs-hairline: 1px;
+  --rs-radius: 0;          /* square edges everywhere */
+
+  /* Motion: the edit record resolving from pending to applied */
+  --rs-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --rs-duration: 240ms;
+}
+
+[data-theme="light"] { color-scheme: light; }
+[data-theme="dark"] { color-scheme: dark; }
+
+@media (pointer: coarse) {
+  :root { --rs-control: var(--rs-touch); }
+}
