@@ -15,7 +15,7 @@ afterEach(() => vi.useRealTimers());
 
 async function fill(user: Awaited<ReturnType<typeof renderSignedIn>>["user"], fields: Record<string, string>) {
   for (const [label, value] of Object.entries(fields)) {
-    const input = screen.getByLabelText(label);
+    const input = screen.getByLabelText(label, { selector: "input" });
     if (label === "Played at") fireEvent.change(input, { target: { value } });
     else {
       await user.clear(input);
@@ -33,7 +33,7 @@ describe("adding a Track", () => {
     const requests = scrobbleEndpoint();
     const { user } = await renderSignedIn();
 
-    expect(screen.getByLabelText("Played at")).toHaveValue("2026-11-06T20:10");
+    expect(screen.getByLabelText("Played at", { selector: "input" })).toHaveValue("2026-11-06T20:10");
     await fill(user, { Artist: "Cher", Track: "Believe" });
     await user.click(screen.getByRole("button", { name: "Add scrobble" }));
 
@@ -60,9 +60,9 @@ describe("adding a Track", () => {
     await user.click(screen.getByRole("button", { name: "Add scrobble" }));
 
     await sessionList().findByText("Added");
-    expect(screen.getByLabelText("Artist")).toHaveValue("Cher");
-    expect(screen.getByLabelText("Track")).toHaveValue("");
-    expect(screen.getByLabelText("Album")).toHaveValue("");
+    expect(screen.getByLabelText("Artist", { selector: "input" })).toHaveValue("Cher");
+    expect(screen.getByLabelText("Track", { selector: "input" })).toHaveValue("");
+    expect(screen.getByLabelText("Album", { selector: "input" })).toHaveValue("");
   });
 
   it("flags a missing artist and track on their fields and sends nothing", async () => {
@@ -71,8 +71,8 @@ describe("adding a Track", () => {
 
     await user.click(screen.getByRole("button", { name: "Add scrobble" }));
 
-    expect(screen.getByLabelText("Artist")).toHaveAccessibleDescription("Enter the artist.");
-    expect(screen.getByLabelText("Track")).toHaveAccessibleDescription("Enter the track.");
+    expect(screen.getByLabelText("Artist", { selector: "input" })).toHaveAccessibleDescription("Enter the artist.");
+    expect(screen.getByLabelText("Track", { selector: "input" })).toHaveAccessibleDescription("Enter the track.");
     expect(requests).toEqual([]);
   });
 
@@ -83,7 +83,7 @@ describe("adding a Track", () => {
 
     await fill(user, { Artist: "Cher", Track: "Believe", "Played at": "2026-10-23T20:09" });
     await user.click(screen.getByRole("button", { name: "Add scrobble" }));
-    expect(screen.getByLabelText("Played at")).toHaveAccessibleDescription(
+    expect(screen.getByLabelText("Played at", { selector: "input" })).toHaveAccessibleDescription(
       "That's more than 14 days ago. Last.fm only accepts plays from the last 14 days.",
     );
     expect(requests).toEqual([]);
@@ -101,7 +101,7 @@ describe("adding a Track", () => {
     await fill(user, { Artist: "Cher", Track: "Believe", "Played at": "2026-11-06T20:12" });
     await user.click(screen.getByRole("button", { name: "Add scrobble" }));
 
-    expect(screen.getByLabelText("Played at")).toHaveAccessibleDescription("That time is in the future.");
+    expect(screen.getByLabelText("Played at", { selector: "input" })).toHaveAccessibleDescription("That time is in the future.");
     expect(requests).toEqual([]);
   });
 
@@ -169,7 +169,7 @@ describe("This session", () => {
 
     expect(await sessionList().findByText("Ignored")).toBeInTheDocument();
     expect(sessionList().getByText(explanation)).toBeInTheDocument();
-    expect(screen.getByLabelText("Track")).toHaveValue("Believe");
+    expect(screen.getByLabelText("Track", { selector: "input" })).toHaveValue("Believe");
   });
 
   it("lists the newest result first and survives a reload", async () => {

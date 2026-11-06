@@ -42,3 +42,26 @@ export async function submitScrobbles(api: Api, entries: ScrobbleEntry[]): Promi
     retryAfterSeconds: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
   };
 }
+
+export const MAX_BATCH = 50;
+
+export type BatchResult =
+  | { ok: true; entries: ScrobbleEntry[]; outcomes: Outcome[] }
+  | { ok: false; entries: ScrobbleEntry[]; outcomes: Outcome[]; failure: Extract<SubmitResult, { ok: false }> };
+
+/**
+ * Sends entries in order, at most 50 per request, one request after another. Stops at the first
+ * failed request; `entries` and `outcomes` then cover only the batches that went through.
+ */
+export async function submitInBatches(api: Api, entries: ScrobbleEntry[]): Promise<BatchResult> {
+  const sent: ScrobbleEntry[] = [];
+  const outcomes: Outcome[] = [];
+  for (let i = 0; i < entries.length; i += MAX_BATCH) {
+    const batch = entries.slice(i, i + MAX_BATCH);
+    const result = await submitScrobbles(api, batch);
+    if (!result.ok) return { ok: false, entries: sent, outcomes, failure: result };
+    sent.push(...batch);
+    outcomes.push(...result.outcomes);
+  }
+  return { ok: true, entries: sent, outcomes };
+}

@@ -11,17 +11,17 @@ function failWith(status: number, body?: object, retryAfter?: string) {
 
 async function submitBelieve() {
   const view = await renderSignedIn();
-  await view.user.type(screen.getByLabelText("Artist"), "Cher");
-  await view.user.type(screen.getByLabelText("Track"), "Believe");
-  await view.user.type(screen.getByLabelText("Album"), "Believe");
+  await view.user.type(screen.getByLabelText("Artist", { selector: "input" }), "Cher");
+  await view.user.type(screen.getByLabelText("Track", { selector: "input" }), "Believe");
+  await view.user.type(screen.getByLabelText("Album", { selector: "input" }), "Believe");
   await view.user.click(screen.getByRole("button", { name: "Add scrobble" }));
   return view;
 }
 
 function expectFormKept() {
-  expect(screen.getByLabelText("Artist")).toHaveValue("Cher");
-  expect(screen.getByLabelText("Track")).toHaveValue("Believe");
-  expect(screen.getByLabelText("Album")).toHaveValue("Believe");
+  expect(screen.getByLabelText("Artist", { selector: "input" })).toHaveValue("Cher");
+  expect(screen.getByLabelText("Track", { selector: "input" })).toHaveValue("Believe");
+  expect(screen.getByLabelText("Album", { selector: "input" })).toHaveValue("Believe");
   expect(within(screen.getByRole("region", { name: "This session" })).queryAllByRole("listitem")).toHaveLength(0);
   expect(screen.getByRole("button", { name: "Add scrobble" })).not.toHaveAttribute("aria-busy");
 }

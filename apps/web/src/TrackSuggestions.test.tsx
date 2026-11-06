@@ -28,11 +28,11 @@ describe("track suggestions", () => {
     const searches = lastFmTrackSearch(() => [["Cher", "Believe"], ["Cher", "Believe (Almighty Mix)"]]);
     const { user } = await renderSignedIn();
 
-    await user.type(screen.getByLabelText("Track"), "belie");
+    await user.type(screen.getByLabelText("Track", { selector: "input" }), "belie");
     await user.click(within(await suggestionList()).getByRole("option", { name: /Believe \(Almighty Mix\)/ }));
 
-    expect(screen.getByLabelText("Artist")).toHaveValue("Cher");
-    expect(screen.getByLabelText("Track")).toHaveValue("Believe (Almighty Mix)");
+    expect(screen.getByLabelText("Artist", { selector: "input" })).toHaveValue("Cher");
+    expect(screen.getByLabelText("Track", { selector: "input" })).toHaveValue("Believe (Almighty Mix)");
     expect(screen.queryByRole("listbox", { name: "Track suggestions" })).not.toBeInTheDocument();
     expect(searches.at(-1)).toEqual({ track: "belie", artist: null, apiKey: "test-api-key" });
   });
@@ -41,12 +41,12 @@ describe("track suggestions", () => {
     lastFmTrackSearch(() => [["Cher", "Believe"], ["Cher", "Strong Enough"]]);
     const { user } = await renderSignedIn();
 
-    await user.type(screen.getByLabelText("Track"), "cher");
+    await user.type(screen.getByLabelText("Track", { selector: "input" }), "cher");
     await suggestionList();
     await user.keyboard("{ArrowDown}{ArrowDown}{Enter}");
-    expect(screen.getByLabelText("Track")).toHaveValue("Strong Enough");
+    expect(screen.getByLabelText("Track", { selector: "input" })).toHaveValue("Strong Enough");
 
-    await user.type(screen.getByLabelText("Track"), "!");
+    await user.type(screen.getByLabelText("Track", { selector: "input" }), "!");
     await suggestionList();
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("listbox", { name: "Track suggestions" })).not.toBeInTheDocument();
@@ -56,8 +56,8 @@ describe("track suggestions", () => {
     const searches = lastFmTrackSearch(() => [["Cher", "Believe"]]);
     const { user } = await renderSignedIn();
 
-    await user.type(screen.getByLabelText("Artist"), "Cher");
-    await user.type(screen.getByLabelText("Track"), "be");
+    await user.type(screen.getByLabelText("Artist", { selector: "input" }), "Cher");
+    await user.type(screen.getByLabelText("Track", { selector: "input" }), "be");
     await suggestionList();
 
     expect(searches.at(-1)).toMatchObject({ track: "be", artist: "Cher" });
@@ -67,11 +67,11 @@ describe("track suggestions", () => {
     const searches = lastFmTrackSearch(() => [["Cher", "Believe"]]);
     const { user } = await renderSignedIn();
 
-    await user.type(screen.getByLabelText("Track"), "b");
+    await user.type(screen.getByLabelText("Track", { selector: "input" }), "b");
     await new Promise((r) => setTimeout(r, 400));
     expect(searches).toHaveLength(0);
 
-    await user.type(screen.getByLabelText("Track"), "elieve");
+    await user.type(screen.getByLabelText("Track", { selector: "input" }), "elieve");
     await suggestionList();
     expect(searches.map((s) => s.track)).toEqual(["believe"]);
   });
@@ -83,9 +83,9 @@ describe("track suggestions", () => {
     );
     const { user } = await renderSignedIn();
 
-    await user.type(screen.getByLabelText("Track"), "bel");
+    await user.type(screen.getByLabelText("Track", { selector: "input" }), "bel");
     await new Promise((r) => setTimeout(r, 350));
-    await user.type(screen.getByLabelText("Track"), "ieve");
+    await user.type(screen.getByLabelText("Track", { selector: "input" }), "ieve");
     const list = await suggestionList();
     await new Promise((r) => setTimeout(r, 700));
 
@@ -98,8 +98,8 @@ describe("track suggestions", () => {
     const requests = scrobbleEndpoint();
     const { user } = await renderSignedIn();
 
-    await user.type(screen.getByLabelText("Artist"), "Cher");
-    await user.type(screen.getByLabelText("Track"), "Believe");
+    await user.type(screen.getByLabelText("Artist", { selector: "input" }), "Cher");
+    await user.type(screen.getByLabelText("Track", { selector: "input" }), "Believe");
     await new Promise((r) => setTimeout(r, 400));
     expect(screen.queryByRole("listbox", { name: "Track suggestions" })).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();

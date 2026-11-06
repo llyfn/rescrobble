@@ -20,3 +20,15 @@ export function formatPlayedAt(timestamp: number, now = new Date()): string {
   if (date.toDateString() === now.toDateString()) return `Today ${time}`;
   return `${date.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} ${time}`;
 }
+
+export function formatClock(timestamp: number): string {
+  return new Date(timestamp * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+}
+
+/** 4:44 for a track, 53:21 for an album, 1:12:05 past the hour. */
+export function formatDuration(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = String(totalSeconds % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
+}
