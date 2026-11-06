@@ -2,6 +2,8 @@
 export const strings = {
   brand: "rescrobble",
   loading: "Loading",
+  signOut: "Sign out",
+  sessionEnded: "Your Last.fm session has ended. Log in again.",
   signedOut: {
     heading: "Add the plays Last.fm missed",
     intro: "Scrobble a single track or a whole album by hand, with each track timed from its length. Every play reports back whether Last.fm kept it.",
@@ -9,6 +11,10 @@ export const strings = {
     logIn: "Log in with Last.fm",
     extension: "Need to edit or delete scrobbles? The rescrobble browser extension does that.",
     extensionStatus: "Coming soon",
+    signInFailed: "Sign-in didn't complete. Try again.",
+  },
+  signedIn: {
+    heading: "Add scrobbles",
   },
   footer: "Powered by AudioScrobbler · Not affiliated with Last.fm",
 };
