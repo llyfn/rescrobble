@@ -6,6 +6,7 @@ import { scrobbleId } from "./mirror/db.ts";
 import { useMirrorSync } from "./mirror/useMirrorSync.ts";
 import { useJobs } from "./jobs/useJobs.ts";
 import { JobList } from "./JobList.tsx";
+import { ChangeLog } from "./ChangeLog.tsx";
 import { Settings } from "./Settings.tsx";
 import type { WebsiteGateway } from "./website/gateway.ts";
 import { TabGateway } from "./website/tabGateway.ts";
@@ -110,6 +111,7 @@ function Shell({ session, pro, transport, gateway, onSignOut }: ShellProps) {
   const mirror = useMirrorSync(session.username);
   const jobs = useJobs(gateway, session.username, (job, entry) => {
     if (job.kind === "delete") return void mirror.remove([entry.target.id]);
+    // Edit and restore both leave the Scrobble with entry.after.
     if (!entry.after) return;
     const updated = { ...entry.target, artist: entry.after.artist, track: entry.after.track, album: entry.after.album };
     void mirror.replace(entry.target.id, { ...updated, id: scrobbleId(updated) });
@@ -150,7 +152,7 @@ function Shell({ session, pro, transport, gateway, onSignOut }: ShellProps) {
         )}
         {screen === "settings" && <Settings onRebuild={mirror.rebuild} />}
         {screen === "jobs" && <JobList jobs={jobs.jobs} />}
-        {screen === "changeLog" && <h1 className="placeholder">{screenLabels[screen]}</h1>}
+        {screen === "changeLog" && <ChangeLog jobs={jobs} pro={pro} api={transport.api} onRestored={(scrobbles) => void mirror.add(scrobbles)} />}
       </main>
     </div>
   );

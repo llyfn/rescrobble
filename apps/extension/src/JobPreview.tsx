@@ -21,7 +21,7 @@ const statusClass: Record<TargetStatus, string> = {
 };
 
 /** What the Mirror knows of a Scrobble's values. The Mirror has no album artist; the website supplies it when the Job runs. */
-const mirrorValues = (s: JobTarget): EditableValues => ({ artist: s.artist, track: s.track, album: s.album, albumArtist: "" });
+export const mirrorValues = (s: JobTarget): EditableValues => ({ artist: s.artist, track: s.track, album: s.album, albumArtist: "" });
 
 const clock = (millis: number) => new Date(millis).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
@@ -59,7 +59,7 @@ function context(before: EditableValues, after: EditableValues | null): string {
   ].filter(Boolean).join(" · ");
 }
 
-function Notice({ tone, children }: { tone?: "warn" | "danger"; children: ReactNode }) {
+export function Notice({ tone, children }: { tone?: "warn" | "danger"; children: ReactNode }) {
   return (
     <div className={tone ? `rs-notice rs-notice--${tone}` : "rs-notice"} role={tone === "warn" ? "alert" : undefined}>
       <svg className="rs-icon" viewBox="0 0 16 16" aria-hidden="true">
@@ -70,20 +70,22 @@ function Notice({ tone, children }: { tone?: "warn" | "danger"; children: ReactN
   );
 }
 
-interface Row {
+export interface Row {
   target: JobTarget;
+  /** The values shown as "before"; the Mirror's values when absent. */
+  before?: EditableValues;
   after: EditableValues | null;
   status: TargetStatus;
   irreversible: boolean;
 }
 
-function Records({ rows, kind, showStatus }: { rows: Row[]; kind: StoredJob["kind"]; showStatus: boolean }) {
-  const labels = kind === "edit" ? e.status : p.status;
+export function Records({ rows, kind, showStatus }: { rows: Row[]; kind: StoredJob["kind"]; showStatus: boolean }) {
+  const labels = kind === "delete" ? p.status : e.status;
   return (
     <ul className="records rs-num">
-      {rows.map(({ target: t, after, status, irreversible }) => {
+      {rows.map(({ target: t, before: given, after, status, irreversible }) => {
         const applied = status === "done";
-        const before = mirrorValues(t);
+        const before = given ?? mirrorValues(t);
         return (
           <li key={t.id} data-status={status}>
             <div className={applied ? "rs-edit rs-edit--applied" : "rs-edit"}>
@@ -248,8 +250,9 @@ function noticeText(notice: JobNotice): { tone: "warn" | undefined; text: string
 
 /** A Job running, paused or done: each record resolving in place, with the controls to steer it. */
 export function JobProgress({ job, jobs, onClose }: { job: StoredJob; jobs: Jobs; onClose: () => void }) {
-  const editing = job.kind === "edit";
+  const editing = job.kind !== "delete";
   const count = p.count(job.entries.length);
+  const heading = job.kind === "restore" ? strings.changeLog.undoEditHeading(count) : editing ? e.heading(count) : p.deleteHeading(count);
   const tally = (status: TargetStatus) => job.entries.filter((x) => x.status === status).length;
   const handled = job.entries.filter((x) => x.status !== "queued").length;
   const summary = editing ? e.summary(tally("done"), tally("notFound"), tally("failed")) : p.summary(tally("done"), tally("notFound"), tally("failed"));
@@ -257,7 +260,8 @@ export function JobProgress({ job, jobs, onClose }: { job: StoredJob; jobs: Jobs
   const notice = job.notice && noticeText(job.notice);
   const rows: Row[] = job.entries.map((x) => ({
     target: x.target,
-    after: editing ? (x.after ?? editedValues(mirrorValues(x.target), job.changes)) : null,
+    before: x.before,
+    after: editing ? (x.after ?? x.restoreTo ?? editedValues(mirrorValues(x.target), job.changes)) : null,
     status: x.status,
     irreversible: false,
   }));
@@ -265,7 +269,7 @@ export function JobProgress({ job, jobs, onClose }: { job: StoredJob; jobs: Jobs
   return (
     <aside className="preview" aria-label={p.label}>
       <header>
-        <h2 className="rs-num">{editing ? e.heading(count) : p.deleteHeading(count)}</h2>
+        <h2 className="rs-num">{heading}</h2>
         {live && <Notice>{p.backgroundTab}</Notice>}
         {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
       </header>

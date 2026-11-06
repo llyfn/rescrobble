@@ -11,6 +11,10 @@ import { JobRunner } from "./runner.ts";
  */
 export function useJobs(gateway: WebsiteGateway, user: string, onApplied: (job: StoredJob, entry: JobEntry) => void) {
   const [jobs, setJobs] = useState<StoredJob[]>([]);
+  const jobsRef = useRef<StoredJob[]>([]);
+  useEffect(() => {
+    jobsRef.current = jobs;
+  }, [jobs]);
   const [store, setStore] = useState<JobStore | null>(null);
   const runner = useRef<JobRunner | null>(null);
   const [runningId, setRunningId] = useState<string | null>(null);
@@ -47,7 +51,16 @@ export function useJobs(gateway: WebsiteGateway, user: string, onApplied: (job: 
         applied.current(job, entry);
       }
     }
-    setJobs((current) => [job, ...current.filter((j) => j.id !== job.id)].sort((a, b) => b.createdAt - a.createdAt));
+    const undid = job.kind === "restore" && job.undoOf && job.state !== "running" && job.state !== "paused" && job.entries.some((e) => e.status === "done");
+    setJobs((current) => {
+      let next = [job, ...current.filter((j) => j.id !== job.id)];
+      if (undid) next = next.map((j) => (j.id === job.undoOf && !j.undone ? { ...j, undone: true } : j));
+      return next.sort((a, b) => b.createdAt - a.createdAt);
+    });
+    if (undid) {
+      const original = jobsRef.current.find((j) => j.id === job.undoOf);
+      if (original && !original.undone) writes.current = writes.current.then(() => store?.save({ ...original, undone: true })).catch(() => undefined);
+    }
     writes.current = writes.current.then(() => store?.save(job)).catch(() => undefined);
   }, [store]);
 
@@ -70,19 +83,30 @@ export function useJobs(gateway: WebsiteGateway, user: string, onApplied: (job: 
     active,
     /** An active Job that isn't running in this session: the app closed while it ran. */
     interrupted: active && active.id !== runningId ? active : null,
-    start(kind: StoredJob["kind"], targets: JobTarget[], changes: FieldChange[]): string {
+    start(kind: StoredJob["kind"], targets: (JobTarget | { target: JobTarget; restoreTo: JobEntry["restoreTo"] })[], changes: FieldChange[], undoOf?: string): string {
       const job: StoredJob = {
         id: crypto.randomUUID(),
         user,
         kind,
         changes,
         createdAt: Date.now(),
-        entries: targets.map((target) => ({ target, status: "queued" })),
+        entries: targets.map((t) => ("target" in t ? { target: t.target, restoreTo: t.restoreTo, status: "queued" } : { target: t, status: "queued" })),
         state: "running",
         notice: null,
+        undoOf,
       };
       run(job);
       return job.id;
+    },
+    markUndone(id: string) {
+      const job = jobs.find((j) => j.id === id);
+      if (job) save({ ...job, undone: true });
+    },
+    /** Forgets every finished or cancelled Job: the Change Log and the Jobs list. */
+    async clearHistory() {
+      const done = jobs.filter((j) => j.state === "finished" || j.state === "cancelled");
+      await store?.remove(done.map((j) => j.id));
+      setJobs((current) => current.filter((j) => !done.some((d) => d.id === j.id)));
     },
     pause: () => runner.current?.pause(),
     resume() {

@@ -25,10 +25,20 @@ export function useMirrorSync(username: string) {
     })().catch(() => live && store.update({ phase: "failed" }));
     return () => {
       live = false;
+      dbRef.current = null;
       opened?.sync.stop();
       opened?.db.close();
     };
   }, [store, username]);
+
+  /**
+   * Writes to the stored Mirror unless it has already closed, which happens when the app closes while a
+   * Job's last change lands. The next sync brings the stored Mirror back in step.
+   */
+  const persist = async (write: (db: MirrorDb) => Promise<void>) => {
+    const db = dbRef.current;
+    if (db) await write(db).catch(() => undefined);
+  };
 
   return {
     store,
@@ -37,13 +47,20 @@ export function useMirrorSync(username: string) {
     /** Swaps a Scrobble for its edited version; its id changes when the artist or track does. */
     replace: async (oldId: string, updated: Scrobble) => {
       store.update({ remove: [oldId], add: [updated] });
-      await dbRef.current?.remove([oldId]);
-      await dbRef.current?.put([updated]);
+      await persist(async (db) => {
+        await db.remove([oldId]);
+        await db.put([updated]);
+      });
+    },
+    /** Puts Scrobbles back into the Mirror, for plays scrobbled again with their old timestamps. */
+    add: async (scrobbles: Scrobble[]) => {
+      store.update({ add: scrobbles });
+      await persist((db) => db.put(scrobbles));
     },
     /** Drops Scrobbles that no longer exist on Last.fm from the Mirror. */
     remove: async (ids: string[]) => {
       store.update({ remove: ids });
-      await dbRef.current?.remove(ids);
+      await persist((db) => db.remove(ids));
     },
   };
 }

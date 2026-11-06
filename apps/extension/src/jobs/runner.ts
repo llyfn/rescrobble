@@ -1,5 +1,6 @@
 import type { Failure, Result, SiteScrobble, WebsiteGateway } from "../website/gateway.ts";
-import type { JobNotice, StoredJob } from "./jobStore.ts";
+import type { EditableValues } from "@rescrobble/core";
+import type { JobEntry, JobNotice, StoredJob } from "./jobStore.ts";
 import { editedValues, type JobTarget } from "./model.ts";
 
 /** Pacing and patience for website requests. Tests replace `sleep` to observe waits without waiting. */
@@ -11,6 +12,14 @@ export const jobTiming = {
   maxConsecutiveFailures: 5,
   sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
 };
+
+const fieldsOf = (s: EditableValues): EditableValues => ({ artist: s.artist, track: s.track, album: s.album, albumArtist: s.albumArtist });
+
+/** The values a restore puts back, or null when the Scrobble already has them. */
+function restoredValues(onSite: EditableValues, restoreTo: EditableValues): EditableValues | null {
+  const current = fieldsOf(onSite);
+  return JSON.stringify(current) === JSON.stringify(fieldsOf(restoreTo)) ? null : fieldsOf(restoreTo);
+}
 
 class Cancelled extends Error {}
 class Detached extends Error {}
@@ -86,8 +95,8 @@ export class JobRunner {
     this.save(this.job);
   }
 
-  private settle(id: string, status: StoredJob["entries"][number]["status"], after?: StoredJob["entries"][number]["after"]) {
-    this.update({ entries: this.job.entries.map((e) => (e.target.id === id ? { ...e, status, after } : e)) });
+  private settle(id: string, status: JobEntry["status"], values?: { before: EditableValues; after: EditableValues }) {
+    this.update({ entries: this.job.entries.map((e) => (e.target.id === id ? { ...e, status, ...values } : e)) });
   }
 
   private async waitUntilResumed(notice: JobNotice) {
@@ -181,30 +190,31 @@ export class JobRunner {
         continue;
       }
 
+      const restoreTo = new Map(this.job.entries.map((e) => [e.target.id, e.restoreTo]));
       const edits = found.flatMap(({ target, onSite }) => {
-        const after = editedValues(onSite, this.job.changes);
+        const after = this.job.kind === "restore" ? restoredValues(onSite, restoreTo.get(target.id)!) : editedValues(onSite, this.job.changes);
         if (!after) this.settle(target.id, "unchanged");
         return after ? [{ target, onSite, after }] : [];
       });
       const same = (a: typeof edits[number]) => (b: typeof edits[number]) =>
         JSON.stringify([a.onSite.artist, a.onSite.track, a.onSite.album, a.onSite.albumArtist, a.after]) ===
         JSON.stringify([b.onSite.artist, b.onSite.track, b.onSite.album, b.onSite.albumArtist, b.after]);
-      if (edits.length > 1 && edits.length === listed.scrobbles.length && edits.every(same(edits[0]!))) {
+      if (this.job.kind === "edit" && edits.length > 1 && edits.length === listed.scrobbles.length && edits.every(same(edits[0]!))) {
         const result = await this.attempt(() => this.gateway.editScrobble(this.job.user, edits[0]!.onSite, edits[0]!.after, true));
-        for (const e of edits) this.settleResult(e.target.id, result, e.after);
+        for (const e of edits) this.settleResult(e.target.id, result, { before: fieldsOf(e.onSite), after: e.after });
         if (!result.ok && result.reason === "editUnavailable") return this.update({ notice: { kind: "editUnavailable" } });
         continue;
       }
       for (const { target, onSite, after } of edits) {
         const result = await this.attempt(() => this.gateway.editScrobble(this.job.user, onSite, after, false));
         if (!result.ok && result.reason === "editUnavailable") return this.update({ notice: { kind: "editUnavailable" } });
-        this.settleResult(target.id, result, after);
+        this.settleResult(target.id, result, { before: fieldsOf(onSite), after });
       }
     }
   }
 
-  private settleResult(id: string, result: Result | Failure, after?: StoredJob["entries"][number]["after"]) {
-    if (result.ok) this.settle(id, "done", after);
+  private settleResult(id: string, result: Result | Failure, values?: { before: EditableValues; after: EditableValues }) {
+    if (result.ok) this.settle(id, "done", values);
     else this.settle(id, result.reason === "notFound" ? "notFound" : "failed");
   }
 }
