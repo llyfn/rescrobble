@@ -1,0 +1,8 @@
+{
+  "name": "@rescrobble/ui",
+  "private": true,
+  "exports": {
+    "./tokens.css": "./tokens.css",
+    "./components.css": "./components.css"
+  }
+}

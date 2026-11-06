@@ -1,0 +1,5 @@
+packages:
+  - apps/*
+  - packages/*
+minimumReleaseAgeExclude:
+  - msw@3.0.4

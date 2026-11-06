@@ -1,0 +1,8 @@
+.app { min-height: 100vh; display: flex; flex-direction: column; }
+.page { width: 100%; max-width: 560px; margin: 0 auto; padding: var(--rs-space-6) var(--rs-space-4) var(--rs-space-8); flex: 1; }
+.page h1 { margin: 0 0 var(--rs-space-3); font: var(--rs-text-heading); }
+.signed-out { display: grid; gap: var(--rs-space-4); align-content: start; }
+.signed-out p { margin: 0; }
+.signed-out .rs-btn { --rs-control: var(--rs-touch); }
+.signed-out .extension { margin-top: var(--rs-space-4); padding-top: var(--rs-space-4); border-top: var(--rs-hairline) solid var(--rs-line); color: var(--rs-ink-2); }
+.footer { padding: var(--rs-space-4); text-align: center; font: var(--rs-text-small); color: var(--rs-ink-3); border-top: var(--rs-hairline) solid var(--rs-line); }

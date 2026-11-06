@@ -33,3 +33,7 @@ design/
 .gradle/
 .kotlin/
 build/
+
+# Node
+node_modules/
+dist/
