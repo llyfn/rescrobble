@@ -61,5 +61,6 @@ fun Application.module(config: Config, lastFmEngine: HttpClientEngine, clock: Cl
         authRoutes(config, lastFm, tokens)
         apiRoutes(lastFm, tokens)
         scrobbleRoutes(config, lastFm, tokens, RateLimiter(clock), clock)
+        config.webAppDir?.let { webAppRoutes(it) }
     }
 }

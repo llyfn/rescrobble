@@ -1,5 +1,7 @@
 package io.github.llyfn.rescrobble
 
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.Base64
 
 class Config(
@@ -9,6 +11,8 @@ class Config(
     val publicBaseUrl: String,
     val extensionId: String,
     val port: Int,
+    /** The built Web App; when absent, only the API is served. */
+    val webAppDir: Path? = null,
 ) {
     companion object {
         private const val DEFAULT_PORT = 8080
@@ -34,6 +38,11 @@ class Config(
                 ?.takeIf { it.size == SESSION_KEY_BYTES }
                 ?: throw IllegalStateException("SESSION_ENCRYPTION_KEY must be $SESSION_KEY_BYTES random bytes, base64-encoded")
 
+            val webAppDir = env["WEB_APP_DIR"]?.takeIf { it.isNotBlank() }?.let { Path.of(it) }
+            if (webAppDir != null && !Files.isRegularFile(webAppDir.resolve("index.html"))) {
+                throw IllegalStateException("WEB_APP_DIR must be a directory containing index.html, got '$webAppDir'")
+            }
+
             return Config(
                 lastFmApiKey = env.getValue("LASTFM_API_KEY"),
                 lastFmSharedSecret = env.getValue("LASTFM_SHARED_SECRET"),
@@ -41,6 +50,7 @@ class Config(
                 publicBaseUrl = env.getValue("PUBLIC_BASE_URL").trimEnd('/'),
                 extensionId = env.getValue("EXTENSION_ID"),
                 port = port,
+                webAppDir = webAppDir,
             )
         }
     }
