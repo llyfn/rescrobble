@@ -37,3 +37,6 @@ build/
 # Node
 node_modules/
 dist/
+.wxt/
+.output/
+apps/extension/.signing/

@@ -1,0 +1,12 @@
+html, body, #root { height: 100%; }
+.sign-in { max-width: 440px; margin: 0 auto; padding: var(--rs-space-12) var(--rs-space-4); display: grid; gap: var(--rs-space-4); align-content: start; --rs-control: var(--rs-touch); }
+.sign-in h1 { margin: 0; font: var(--rs-text-heading); }
+.sign-in p { margin: 0; }
+.shell { height: 100%; display: grid; grid-template-columns: var(--rs-rail) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.rs-rail__foot { display: grid; gap: 2px; justify-items: start; }
+.rs-rail__foot .account { color: var(--rs-shell-ink); font-weight: 600; }
+.rs-rail__foot .sign-out { color: var(--rs-shell-ink-2); padding: 0; min-height: 28px; margin-top: var(--rs-space-1); }
+.rs-rail__foot .sign-out:hover { color: var(--rs-shell-ink); border-color: transparent; }
+.work { min-width: 0; min-height: 0; overflow: auto; }
+.placeholder { margin: 0; padding: var(--rs-space-5) var(--rs-space-6); font: var(--rs-text-heading); }
+.add-page { max-width: 560px; padding: var(--rs-space-6); }
