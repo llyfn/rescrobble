@@ -16,5 +16,44 @@ export const strings = {
   signedIn: {
     heading: "Add scrobbles",
   },
+  track: {
+    artist: "Artist",
+    track: "Track",
+    album: "Album",
+    albumHint: "Optional",
+    playedAt: "Played at",
+    submit: "Add scrobble",
+  },
+  validation: {
+    required: (field: string) => `Enter the ${field.toLowerCase()}.`,
+    invalidTime: "Enter a date and time.",
+    tooOld: "That's more than 14 days ago. Last.fm only accepts plays from the last 14 days.",
+    inFuture: "That time is in the future.",
+  },
+  failure: {
+    generic: "Something went wrong. Try again.",
+  },
+  session: {
+    heading: "This session",
+    empty: "Scrobbles you add appear here until you close this tab.",
+    added: "Added",
+    ignored: "Ignored",
+    notSent: "Not sent",
+    corrected: "Last.fm corrected the name.",
+    fieldLabels: { artist: "Artist", track: "Track" } as Record<string, string>,
+    ignoredReasons: {
+      1: "Last.fm ignored this artist.",
+      2: "Last.fm ignored this track.",
+      3: "Last.fm ignored it: the time is too old. Plays must be from the last 14 days.",
+      4: "Last.fm ignored it: the time is too far ahead.",
+      5: "Last.fm ignored it: you've reached today's scrobble limit.",
+    } as Record<number, string>,
+    rejectedReasons: {
+      tooOld: "Not sent: the time is more than 14 days ago.",
+      inFuture: "Not sent: the time is in the future.",
+      missingField: "Not sent: a required field was empty.",
+    } as Record<string, string>,
+    announce: (what: string, outcome: string) => `${what}: ${outcome}`,
+  },
   footer: "Powered by AudioScrobbler · Not affiliated with Last.fm",
 };
