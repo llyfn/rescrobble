@@ -1,27 +1,30 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AddScrobbles, ScrobbleTransportContext } from "@rescrobble/scrobble-ui";
 import { createApi, loadApiKey } from "./backend.ts";
+import { History } from "./History.tsx";
+import { useMirrorSync } from "./mirror/useMirrorSync.ts";
+import { Settings } from "./Settings.tsx";
 import { clearSession, loadSession, signIn, type StoredSession } from "./session.ts";
 import { strings } from "./strings.ts";
 
-type Screen = "history" | "add" | "jobs" | "changeLog";
+type Screen = "history" | "add" | "jobs" | "changeLog" | "settings";
 
 type View =
   | { kind: "loading" }
   | { kind: "signedOut"; notice?: string }
   | { kind: "signedIn"; session: StoredSession; pro: boolean | null };
 
-const screens: Screen[] = ["history", "add", "jobs", "changeLog"];
+const screens: Screen[] = ["history", "add", "jobs", "changeLog", "settings"];
 const screenLabels: Record<Screen, string> = {
   history: strings.nav.history,
   add: strings.nav.add,
   jobs: strings.nav.jobs,
   changeLog: strings.nav.changeLog,
+  settings: strings.nav.settings,
 };
 
 export function App() {
   const [view, setView] = useState<View>({ kind: "loading" });
-  const [screen, setScreen] = useState<Screen>("history");
   const [busy, setBusy] = useState(false);
 
   const endSession = useCallback(() => {
@@ -85,6 +88,20 @@ export function App() {
     );
   }
 
+  return <Shell session={view.session} pro={view.pro} transport={transport!} onSignOut={signOut} />;
+}
+
+interface ShellProps {
+  session: StoredSession;
+  pro: boolean | null;
+  transport: { api: ReturnType<typeof createApi>; loadApiKey: typeof loadApiKey };
+  onSignOut: () => void;
+}
+
+function Shell({ session, pro, transport, onSignOut }: ShellProps) {
+  const [screen, setScreen] = useState<Screen>("history");
+  const mirror = useMirrorSync(session.username);
+
   return (
     <div className="shell">
       <nav className="rs-rail" aria-label={strings.nav.label}>
@@ -104,19 +121,20 @@ export function App() {
           </a>
         ))}
         <div className="rs-rail__foot">
-          <span className="account">{view.session.username}</span>
-          {view.pro !== null && <span>{view.pro ? strings.account.pro : strings.account.free}</span>}
-          <button type="button" className="rs-btn rs-btn--quiet sign-out" onClick={signOut}>{strings.account.signOut}</button>
+          <span className="account">{session.username}</span>
+          {pro !== null && <span>{pro ? strings.account.pro : strings.account.free}</span>}
+          <button type="button" className="rs-btn rs-btn--quiet sign-out" onClick={onSignOut}>{strings.account.signOut}</button>
         </div>
       </nav>
       <main className="work">
-        {screen === "add" && transport ? (
+        {screen === "history" && <History store={mirror.store} onSyncNow={mirror.syncNow} />}
+        {screen === "add" && (
           <ScrobbleTransportContext value={transport}>
             <div className="add-page"><AddScrobbles /></div>
           </ScrobbleTransportContext>
-        ) : (
-          <h1 className="placeholder">{screenLabels[screen]}</h1>
         )}
+        {screen === "settings" && <Settings onRebuild={mirror.rebuild} />}
+        {(screen === "jobs" || screen === "changeLog") && <h1 className="placeholder">{screenLabels[screen]}</h1>}
       </main>
     </div>
   );

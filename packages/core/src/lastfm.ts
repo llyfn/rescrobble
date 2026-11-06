@@ -22,6 +22,21 @@ export interface Album {
   tracks: AlbumTrack[];
 }
 
+/** One recorded play as Last.fm's history reports it. */
+export interface RecentScrobble {
+  artist: string;
+  track: string;
+  album: string;
+  timestamp: number;
+}
+
+export interface RecentTracksPage {
+  scrobbles: RecentScrobble[];
+  page: number;
+  totalPages: number;
+  total: number;
+}
+
 /** Last.fm's code for an artist, album or track it doesn't know. */
 const NOT_FOUND = 6;
 
@@ -74,6 +89,35 @@ export class LastFmReader {
     };
   }
 
+  /**
+   * One page of a user's history, newest first, at most 200 per page. The track playing right now
+   * has no timestamp yet and is left out.
+   */
+  async getRecentTracks(
+    user: string,
+    options: { page?: number; limit?: number; from?: number; to?: number; signal?: AbortSignal } = {},
+  ): Promise<RecentTracksPage> {
+    const params: Record<string, string> = { user, page: String(options.page ?? 1), limit: String(options.limit ?? 200) };
+    if (options.from !== undefined) params.from = String(options.from);
+    if (options.to !== undefined) params.to = String(options.to);
+    const body = (await this.get("user.getrecenttracks", params, options.signal)) as RecentTracksResponse;
+    const attr = body.recenttracks?.["@attr"];
+    const scrobbles = asList(body.recenttracks?.track)
+      .filter((t) => t["@attr"]?.nowplaying !== "true" && t.date?.uts)
+      .map((t) => ({
+        artist: t.artist["#text"],
+        track: t.name,
+        album: t.album?.["#text"] ?? "",
+        timestamp: Number(t.date!.uts),
+      }));
+    return {
+      scrobbles,
+      page: Number(attr?.page ?? 1),
+      totalPages: Number(attr?.totalPages ?? 0),
+      total: Number(attr?.total ?? 0),
+    };
+  }
+
   private async get(method: string, params: Record<string, string>, signal?: AbortSignal): Promise<unknown> {
     const url = new URL(LASTFM_API_URL);
     for (const [key, value] of Object.entries({ ...params, method, api_key: this.apiKey, format: "json" })) {
@@ -90,6 +134,21 @@ export class LastFmError extends Error {
   constructor(method: string, readonly code: number | undefined, message: string) {
     super(`Last.fm ${method} failed: ${message}`);
   }
+}
+
+interface RecentTrack {
+  name: string;
+  artist: { "#text": string };
+  album?: { "#text": string };
+  date?: { uts: string };
+  "@attr"?: { nowplaying?: string };
+}
+
+interface RecentTracksResponse {
+  recenttracks?: {
+    track?: RecentTrack | RecentTrack[];
+    "@attr"?: { page: string; totalPages: string; total: string };
+  };
 }
 
 interface AlbumSearchResponse {
