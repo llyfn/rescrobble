@@ -172,5 +172,5 @@ export const strings = {
     rebuildHint: "Deletes the local copy of your history and copies it again from Last.fm. Your Last.fm history isn't touched.",
   },
   sessionEnded: "Your Last.fm session has ended. Log in again.",
-  footer: "Powered by AudioScrobbler · Not affiliated with Last.fm",
+  footer: "Powered by AudioScrobbler",
 };

@@ -36,4 +36,4 @@ Curate your [Last.fm](https://www.last.fm) listening history: add plays that nev
 
 ## Credits
 
-Powered by [AudioScrobbler](https://www.last.fm/api). rescrobble is a non-commercial project and is not affiliated with Last.fm.
+Powered by [AudioScrobbler](https://www.last.fm/api). rescrobble is a non-commercial project.

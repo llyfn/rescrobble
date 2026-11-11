@@ -16,7 +16,7 @@ describe("signed out", () => {
 
     expect(await screen.findByRole("heading", { name: "Add the plays Last.fm missed" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Log in with Last.fm" })).toHaveAttribute("href", "/auth/login");
-    expect(screen.getByText("Powered by AudioScrobbler · Not affiliated with Last.fm")).toBeInTheDocument();
+    expect(screen.getByText("Powered by AudioScrobbler")).toBeInTheDocument();
   });
 
   it("shows a notice after a failed sign-in and clears the flag from the URL", async () => {

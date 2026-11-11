@@ -13,5 +13,5 @@ export const strings = {
     extensionStatus: "Coming soon",
     signInFailed: "Sign-in didn't complete. Try again.",
   },
-  footer: "Powered by AudioScrobbler · Not affiliated with Last.fm",
+  footer: "Powered by AudioScrobbler",
 };
