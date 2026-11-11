@@ -8,12 +8,12 @@ import type { WebsiteGateway } from "../website/gateway.ts";
 import { FakeLastFmWebsite } from "./fakeWebsite.ts";
 import { BACKEND, server } from "./server.ts";
 
-export const REDIRECT = "https://mnbkmonfmoloodikmopdlohjgdehfkep.chromiumapp.org/lastfm";
+export const REDIRECT = "https://pjeamaekcjcngmbldpkhanpmgnhjfboh.chromiumapp.org/lastfm";
 
 /** Scripts the browser's Last.fm sign-in window to come back with `token`, or to be closed when null. */
 export function lastFmApproval(token: string | null) {
   const launched: string[] = [];
-  fakeBrowser.identity.getRedirectURL = vi.fn((path?: string) => `https://mnbkmonfmoloodikmopdlohjgdehfkep.chromiumapp.org/${path ?? ""}`);
+  fakeBrowser.identity.getRedirectURL = vi.fn((path?: string) => `https://pjeamaekcjcngmbldpkhanpmgnhjfboh.chromiumapp.org/${path ?? ""}`);
   fakeBrowser.identity.launchWebAuthFlow = vi.fn(async ({ url }: { url: string }) => {
     launched.push(url);
     if (token === null) throw new Error("The user did not approve access.");

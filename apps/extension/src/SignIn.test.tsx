@@ -30,7 +30,7 @@ describe("signing in", () => {
     const approval = new URL(launched[0]!);
     expect(approval.origin + approval.pathname).toBe("https://www.last.fm/api/auth/");
     expect(approval.searchParams.get("api_key")).toBe("test-api-key");
-    expect(approval.searchParams.get("cb")).toBe("https://mnbkmonfmoloodikmopdlohjgdehfkep.chromiumapp.org/lastfm");
+    expect(approval.searchParams.get("cb")).toBe("https://pjeamaekcjcngmbldpkhanpmgnhjfboh.chromiumapp.org/lastfm");
     expect(backend.exchanged).toEqual(["lastfm-token"]);
     expect(backend.bearers).toEqual(["Bearer rescrobble-token"]);
     expect(await fakeBrowser.storage.local.get("session")).toEqual({ session: { username: "rj", token: "rescrobble-token" } });

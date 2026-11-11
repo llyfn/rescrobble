@@ -16,7 +16,7 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AccountLimits"] }],
   "vars": {
     "PUBLIC_BASE_URL": "https://rescrobble.llyfn.workers.dev",
-    "EXTENSION_ID": "mnbkmonfmoloodikmopdlohjgdehfkep"
+    "EXTENSION_ID": "pjeamaekcjcngmbldpkhanpmgnhjfboh"
   },
   "env": {
     "test": {
