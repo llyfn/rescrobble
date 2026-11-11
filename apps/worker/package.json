@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --port 8080",
-    "deploy": "wrangler deploy",
+    "deploy": "pnpm --filter @rescrobble/web build && wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
