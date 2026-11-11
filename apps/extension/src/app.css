@@ -18,13 +18,15 @@ html, body, #root { height: 100%; }
 .history .scroll { flex: 1; min-height: 0; overflow: auto; background: var(--rs-surface); --rs-table-inset: var(--rs-space-6); }
 .history .col-artist { width: 22%; }
 .history .col-album { width: 26%; }
-.settings { padding: var(--rs-space-5) var(--rs-space-6); max-width: 560px; }
+.settings { padding: var(--rs-space-5) var(--rs-space-6); }
 .settings h1 { margin: 0 0 var(--rs-space-5); font: var(--rs-text-heading); }
 .settings section { display: grid; gap: var(--rs-space-2); justify-items: start; }
 .settings p { margin: 0; }
 .history .rs-col-time { width: 176px; }
 .history .filters { padding: var(--rs-space-3) var(--rs-space-6); background: var(--rs-surface); border-bottom: var(--rs-hairline) solid var(--rs-line); display: grid; gap: var(--rs-space-3); }
 .history .chips { display: flex; flex-wrap: wrap; gap: var(--rs-space-2); align-items: center; }
+/* Empty while the first Filter is being written; it would otherwise add a gap above the editor. */
+.history .chips:empty { display: none; }
 .history .rs-chip.invalid { border-color: var(--rs-danger); }
 .history .chip-error { padding: 0 var(--rs-space-2); }
 .filter-editor { display: flex; flex-wrap: wrap; align-items: end; gap: var(--rs-space-3); }

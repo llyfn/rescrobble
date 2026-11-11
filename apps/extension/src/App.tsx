@@ -20,7 +20,7 @@ type View =
   | { kind: "signedOut"; notice?: string }
   | { kind: "signedIn"; session: StoredSession; pro: boolean | null };
 
-const screens: Screen[] = ["history", "add", "jobs", "changeLog", "settings"];
+const screens: Screen[] = ["history", "add", "changeLog", "jobs", "settings"];
 const screenLabels: Record<Screen, string> = {
   history: strings.nav.history,
   add: strings.nav.add,
