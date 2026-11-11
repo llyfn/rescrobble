@@ -39,7 +39,7 @@ mark.match { color: inherit; background: color-mix(in oklab, var(--rs-ink) 9%, t
 .history.with-preview { display: grid; grid-template-columns: minmax(0, 1fr) var(--rs-panel); }
 .history-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; }
 .with-preview .history-main { border-right: var(--rs-hairline) solid var(--rs-line); }
-.selection-actions { display: flex; gap: var(--rs-space-2); padding: var(--rs-space-3) var(--rs-space-6); background: var(--rs-surface); border-bottom: var(--rs-hairline) solid var(--rs-line); }
+.selection-actions { display: flex; align-items: center; gap: var(--rs-space-2); padding: var(--rs-space-3) var(--rs-space-6); background: var(--rs-surface); border-bottom: var(--rs-hairline) solid var(--rs-line); }
 .preview { display: flex; flex-direction: column; min-height: 0; background: var(--rs-surface); }
 .preview header { display: grid; gap: var(--rs-space-3); padding: var(--rs-space-5) var(--rs-space-5) var(--rs-space-4); border-bottom: var(--rs-hairline) solid var(--rs-line); }
 .preview h2 { margin: 0; font: var(--rs-text-title); }
