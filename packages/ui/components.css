@@ -59,6 +59,14 @@ a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; 
   font: var(--rs-text-body); color: var(--rs-ink);
   background: var(--rs-surface); border: var(--rs-hairline) solid var(--rs-line-strong); border-radius: var(--rs-radius);
 }
+/* The native arrow sits at a browser-chosen inset that doesn't match the text inset, so the chevron is drawn here. */
+.rs-select {
+  appearance: none; padding-right: calc(var(--rs-space-3) + 10px + var(--rs-space-2));
+  --rs-chevron: transparent calc(50% - 0.75px), var(--rs-ink-2) calc(50% - 0.75px) calc(50% + 0.75px), transparent calc(50% + 0.75px);
+  background-image: linear-gradient(45deg, var(--rs-chevron)), linear-gradient(135deg, var(--rs-chevron));
+  background-position: calc(100% - var(--rs-space-3) - 5px) 50%, calc(100% - var(--rs-space-3)) 50%;
+  background-size: 5px 5px; background-repeat: no-repeat;
+}
 .rs-input::placeholder { color: var(--rs-ink-3); }
 .rs-input:hover, .rs-select:hover { border-color: var(--rs-ink-2); }
 .rs-input:focus-visible, .rs-select:focus-visible { outline: 2px solid var(--rs-ink); outline-offset: -1px; border-color: var(--rs-ink); }
