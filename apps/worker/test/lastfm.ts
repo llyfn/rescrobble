@@ -23,7 +23,7 @@ export interface LastFmRequest {
 export function lastFm(reply: (method: string, form: URLSearchParams) => Response): LastFmRequest[] {
   const requests: LastFmRequest[] = [];
   network.use(http.all(API_URL, async ({ request }) => {
-    const form = new URLSearchParams(await request.text());
+    const form = new URLSearchParams(new TextDecoder().decode(await request.arrayBuffer()));
     requests.push({ method: request.method, url: request.url, form });
     return reply(form.get("method") ?? "", form);
   }));
