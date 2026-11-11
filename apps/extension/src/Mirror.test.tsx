@@ -128,11 +128,11 @@ describe("the History table", () => {
     await waitFor(() => expect(fact("Scrobbles")).toBe("3"));
 
     await user.click(screen.getByRole("button", { name: "Artist" }));
-    expect(bodyRows().map((r) => r.cells[1]?.textContent)).toEqual(["Air", "Björk", "Cher"]);
+    expect(bodyRows().map((r) => r.cells[2]?.textContent)).toEqual(["Air", "Björk", "Cher"]);
     expect(screen.getByRole("columnheader", { name: "Artist" })).toHaveAttribute("aria-sort", "ascending");
 
     await user.click(screen.getByRole("button", { name: "Artist" }));
-    expect(bodyRows().map((r) => r.cells[1]?.textContent)).toEqual(["Cher", "Björk", "Air"]);
+    expect(bodyRows().map((r) => r.cells[2]?.textContent)).toEqual(["Cher", "Björk", "Air"]);
   });
 
   it("draws only the rows in view for a large Mirror", async () => {

@@ -27,6 +27,7 @@ async function openWithRadioheadSelected(website: FakeLastFmWebsite, pro: boolea
   await view.user.selectOptions(editor.getByLabelText("Field"), "artist");
   await view.user.type(editor.getByLabelText("Value"), "Radiohead");
   await view.user.click(editor.getByRole("button", { name: "Add filter" }));
+  await view.user.click(screen.getByRole("checkbox", { name: "Select all matching scrobbles" }));
   return view;
 }
 

@@ -39,12 +39,12 @@ function marked(value: string, condition: Extract<Condition, { kind: "text" }> |
   );
 }
 
-function SelectAll({ total, selected, onToggle }: { total: number; selected: number; onToggle: () => void }) {
+function SelectAll({ label, total, selected, onToggle }: { label: string; total: number; selected: number; onToggle: () => void }) {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (ref.current) ref.current.indeterminate = selected > 0 && selected < total;
   }, [selected, total]);
-  return <input ref={ref} className="rs-check" type="checkbox" aria-label={h.selectAll} checked={selected > 0 && selected === total} onChange={onToggle} />;
+  return <input ref={ref} className="rs-check" type="checkbox" aria-label={label} checked={selected > 0 && selected === total} onChange={onToggle} />;
 }
 
 interface HistoryProps {
@@ -60,7 +60,7 @@ export function History({ store, onSyncNow, jobs, pro }: HistoryProps) {
   const mirror = useMirror(store);
   const [sort, setSort] = useState<Sort>({ column: "played", descending: true });
   const [conditions, setConditions] = useState<Condition[]>([]);
-  const [deselected, setDeselected] = useState<ReadonlySet<string>>(new Set());
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [panel, setPanel] = useState<Panel | null>(null);
   const shownJob = panel?.mode === "job" ? jobs.jobs.find((j) => j.id === panel.id) ?? null : null;
   const [scrollTop, setScrollTop] = useState(0);
@@ -74,7 +74,7 @@ export function History({ store, onSyncNow, jobs, pro }: HistoryProps) {
 
   const filtering = conditions.length > 0;
   const matches = useMemo(() => (filtering ? applyFilter(rows, conditions) : rows), [rows, conditions, filtering]);
-  const selectedCount = filtering ? matches.reduce((n, s) => n + (deselected.has(s.id) ? 0 : 1), 0) : 0;
+  const selectedCount = matches.reduce((n, s) => n + (selected.has(s.id) ? 1 : 0), 0);
   const markFor = useMemo(() => {
     const byField: Partial<Record<TextField, Extract<Condition, { kind: "text" }>>> = {};
     for (const c of conditions) if (c.kind === "text" && c.mode !== "empty" && !byField[c.field]) byField[c.field] = c;
@@ -83,11 +83,13 @@ export function History({ store, onSyncNow, jobs, pro }: HistoryProps) {
 
   function changeConditions(next: Condition[]) {
     setConditions(next);
-    setDeselected(new Set());
+    // A row the new Filter hides is unchecked, so Edit and Delete only ever touch rows on screen.
+    const shown = next.length > 0 ? applyFilter(rows, next) : rows;
+    setSelected((current) => (current.size === 0 ? current : new Set(shown.filter((s) => current.has(s.id)).map((s) => s.id))));
   }
 
   function toggleRow(id: string) {
-    setDeselected((current) => {
+    setSelected((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -96,7 +98,7 @@ export function History({ store, onSyncNow, jobs, pro }: HistoryProps) {
   }
 
   function toggleAll() {
-    setDeselected(selectedCount === matches.length ? new Set(matches.map((s) => s.id)) : new Set());
+    setSelected(selectedCount === matches.length ? new Set() : new Set(matches.map((s) => s.id)));
   }
 
   const oldest = useMemo(() => {
@@ -131,7 +133,7 @@ export function History({ store, onSyncNow, jobs, pro }: HistoryProps) {
     </th>
   );
 
-  const selection = () => matches.filter((s) => !deselected.has(s.id));
+  const selection = () => matches.filter((s) => selected.has(s.id));
 
   return (
     <div className={panel ? "history with-preview" : "history"}>
@@ -142,7 +144,7 @@ export function History({ store, onSyncNow, jobs, pro }: HistoryProps) {
             <div><dt>{h.scrobbles}</dt><dd>{formatCount(rows.length)}</dd></div>
             {oldest !== null && <div><dt>{h.since}</dt><dd>{formatDate(oldest)}</dd></div>}
             {filtering && <div><dt>{h.matching}</dt><dd>{formatCount(matches.length)}</dd></div>}
-            {filtering && <div><dt>{h.selected}</dt><dd>{formatCount(selectedCount)}</dd></div>}
+            {selectedCount > 0 && <div><dt>{h.selected}</dt><dd>{formatCount(selectedCount)}</dd></div>}
           </dl>
           <div className="sync">
             <span className="rs-hint rs-num" role="status">{status}</span>
@@ -167,7 +169,7 @@ export function History({ store, onSyncNow, jobs, pro }: HistoryProps) {
             </span>
           </div>
         )}
-        {filtering && selectedCount > 0 && !panel && (
+        {selectedCount > 0 && !panel && (
           <div className="selection-actions" role="toolbar" aria-label={strings.actions.label}>
             <button type="button" className="rs-btn" onClick={() => setPanel({ mode: "build", kind: "edit", targets: selection() })} disabled={pro === false}>
               {strings.actions.edit(strings.preview.count(selectedCount))}
@@ -186,11 +188,9 @@ export function History({ store, onSyncNow, jobs, pro }: HistoryProps) {
           <table className="rs-table" aria-label={h.table} aria-rowcount={matches.length + 1}>
             <thead>
               <tr>
-                {filtering && (
-                  <th className="rs-col-check">
-                    <SelectAll total={matches.length} selected={selectedCount} onToggle={toggleAll} />
-                  </th>
-                )}
+                <th className="rs-col-check">
+                  <SelectAll label={filtering ? h.selectAllMatching : h.selectAll} total={matches.length} selected={selectedCount} onToggle={toggleAll} />
+                </th>
                 {header("played", "rs-col-time")}
                 {header("artist", "col-artist")}
                 {header("track")}
@@ -200,14 +200,12 @@ export function History({ store, onSyncNow, jobs, pro }: HistoryProps) {
             <tbody>
               {first > 0 && <tr aria-hidden="true" style={{ height: first * ROW_HEIGHT }} />}
               {matches.slice(first, last).map((s, i) => {
-                const selected = filtering && !deselected.has(s.id);
+                const checked = selected.has(s.id);
                 return (
-                  <tr key={s.id} aria-rowindex={first + i + 2} aria-selected={filtering ? selected : undefined}>
-                    {filtering && (
-                      <td className="rs-col-check">
-                        <input className="rs-check" type="checkbox" checked={selected} aria-label={h.selectRow(`${s.artist} — ${s.track}, ${formatPlayed(s.timestamp)}`)} onChange={() => toggleRow(s.id)} />
-                      </td>
-                    )}
+                  <tr key={s.id} aria-rowindex={first + i + 2} aria-selected={checked}>
+                    <td className="rs-col-check">
+                      <input className="rs-check" type="checkbox" checked={checked} aria-label={h.selectRow(`${s.artist} — ${s.track}, ${formatPlayed(s.timestamp)}`)} onChange={() => toggleRow(s.id)} />
+                    </td>
                     <td className="rs-col-time"><time dateTime={new Date(s.timestamp * 1000).toISOString()}>{formatPlayed(s.timestamp)}</time></td>
                     <td>{marked(s.artist, markFor.artist)}</td>
                     <td>{marked(s.track, markFor.track)}</td>
@@ -235,7 +233,7 @@ export function History({ store, onSyncNow, jobs, pro }: HistoryProps) {
           jobs={jobs}
           onClose={() => {
             setPanel(null);
-            setDeselected(new Set());
+            setSelected(new Set());
           }}
         />
       )}

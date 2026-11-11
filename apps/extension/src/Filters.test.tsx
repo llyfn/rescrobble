@@ -109,33 +109,62 @@ describe("filtering History", () => {
   });
 });
 
-describe("selecting matches", () => {
-  it("selects every match by default, and lets single rows be deselected", async () => {
+describe("selecting Scrobbles", () => {
+  it("starts with nothing selected and lets rows be checked without a Filter", async () => {
+    const { user } = await open();
+
+    expect(fact("Selected")).toBeUndefined();
+    expect(screen.queryByRole("toolbar", { name: "Actions for the selection" })).not.toBeInTheDocument();
+
+    await user.click(screen.getAllByRole("checkbox", { name: /^Select Cher — Believe/ })[0]!);
+
+    expect(fact("Selected")).toBe("1");
+    expect(screen.getByRole("button", { name: "Delete 1 scrobble" })).toBeInTheDocument();
+  });
+
+  it("selects every row with the header checkbox when there is no Filter", async () => {
+    const { user } = await open();
+
+    await user.click(screen.getByRole("checkbox", { name: "Select all scrobbles" }));
+
+    expect(fact("Selected")).toBe("5");
+  });
+
+  it("selects nothing when a Filter is added, and lets matches be checked one by one or all at once", async () => {
     const { user } = await open();
     const editor = await addFilter(user, { field: "artist", mode: "exact", value: "Radiohead" });
     await user.click(editor.getByRole("button", { name: "Add filter" }));
 
-    expect(fact("Selected")).toBe("3");
+    expect(fact("Matching")).toBe("3");
+    expect(fact("Selected")).toBeUndefined();
     const selectAll = screen.getByRole("checkbox", { name: "Select all matching scrobbles" });
-    expect(selectAll).toBeChecked();
+    expect(selectAll).not.toBeChecked();
 
     await user.click(screen.getByRole("checkbox", { name: /^Select Radiohead — Let Down/ }));
 
-    expect(fact("Selected")).toBe("2");
+    expect(fact("Selected")).toBe("1");
     expect(selectAll).toHaveProperty("indeterminate", true);
-    expect(table().getAllByRole("row").filter((r) => r.getAttribute("aria-selected") === "true")).toHaveLength(2);
+    expect(table().getAllByRole("row").filter((r) => r.getAttribute("aria-selected") === "true")).toHaveLength(1);
 
     await user.click(selectAll);
     expect(fact("Selected")).toBe("3");
+    expect(selectAll).toBeChecked();
     await user.click(selectAll);
-    expect(fact("Selected")).toBe("0");
-    expect(selectAll).not.toBeChecked();
+    expect(fact("Selected")).toBeUndefined();
   });
 
-  it("shows no selection without a Filter", async () => {
-    await open();
+  it("unchecks rows that a new Filter hides", async () => {
+    const { user } = await open();
+    await user.click(screen.getByRole("checkbox", { name: /^Select Radiohead — Let Down/ }));
+    await user.click(screen.getAllByRole("checkbox", { name: /^Select Cher — Believe/ })[0]!);
+    expect(fact("Selected")).toBe("2");
 
-    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
-    expect(fact("Selected")).toBeUndefined();
+    const editor = await addFilter(user, { field: "artist", mode: "exact", value: "Radiohead" });
+    await user.click(editor.getByRole("button", { name: "Add filter" }));
+    expect(fact("Selected")).toBe("1");
+
+    await user.click(screen.getByRole("button", { name: /^Remove filter/ }));
+    expect(fact("Selected")).toBe("1");
+    expect(screen.getAllByRole("checkbox", { name: /^Select Cher — Believe/ }).every((c) => !(c as HTMLInputElement).checked)).toBe(true);
   });
 });

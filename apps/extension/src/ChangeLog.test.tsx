@@ -29,6 +29,7 @@ async function applyJob(kind: "edit" | "delete", website: FakeLastFmWebsite, pro
   await view.user.selectOptions(editor.getByLabelText("Field"), "artist");
   await view.user.type(editor.getByLabelText("Value"), "Radiohead");
   await view.user.click(editor.getByRole("button", { name: "Add filter" }));
+  await view.user.click(screen.getByRole("checkbox", { name: "Select all matching scrobbles" }));
   if (kind === "edit") {
     await view.user.click(screen.getByRole("button", { name: "Edit 3 scrobbles" }));
     await view.user.type(within(preview().getByRole("group", { name: "Changes" })).getByLabelText("Find"), " - Remastered");
