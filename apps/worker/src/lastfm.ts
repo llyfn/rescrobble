@@ -2,6 +2,7 @@ export const API_URL = "https://ws.audioscrobbler.com/2.0/";
 export const AUTH_URL = "https://www.last.fm/api/auth/";
 /** Last.fm's code for a session key that was revoked or never valid. */
 export const INVALID_SESSION = 9;
+export const MAX_BATCH = 50;
 
 export interface LastFmSession {
   username: string;
@@ -12,6 +13,24 @@ export interface LastFmUser {
   name: string;
   /** Null when Last.fm doesn't say. */
   pro: boolean | null;
+}
+
+export interface ScrobbleSubmission {
+  artist: string;
+  track: string;
+  timestamp: number;
+  album?: string;
+  albumArtist?: string;
+}
+
+export type ScrobbleOutcome =
+  | { status: "accepted"; artist: string; artistCorrected: boolean; track: string; trackCorrected: boolean }
+  | { status: "ignored"; code: number; message: string };
+
+interface ScrobbleEntryJson {
+  artist?: { "#text"?: string; corrected?: string };
+  track?: { "#text"?: string; corrected?: string };
+  ignoredMessage?: { code?: string; "#text"?: string };
 }
 
 /** Last.fm answered with an API error code. */
@@ -57,6 +76,26 @@ export class LastFmClient {
     return { name: user.name, pro: flag === "1" || flag === "true" ? true : flag === "0" || flag === "false" ? false : null };
   }
 
+  /** Submits up to 50 Scrobbles in one batch; outcomes come back in submission order. */
+  async scrobble(sessionKey: string, submissions: ScrobbleSubmission[]): Promise<ScrobbleOutcome[]> {
+    const params: Record<string, string> = { sk: sessionKey };
+    submissions.forEach((s, i) => {
+      params[`artist[${i}]`] = s.artist;
+      params[`track[${i}]`] = s.track;
+      params[`timestamp[${i}]`] = String(s.timestamp);
+      if (s.album !== undefined) params[`album[${i}]`] = s.album;
+      if (s.albumArtist !== undefined) params[`albumArtist[${i}]`] = s.albumArtist;
+    });
+    const scrobbles = (await this.signedCall("track.scrobble", params)).scrobbles as { scrobble?: ScrobbleEntryJson | ScrobbleEntryJson[] } | undefined;
+    if (!scrobbles) throw new LastFmUnavailable("track.scrobble response has no scrobbles");
+    // Last.fm's JSON collapses a one-element list into a bare object.
+    const entries = Array.isArray(scrobbles.scrobble) ? scrobbles.scrobble : scrobbles.scrobble ? [scrobbles.scrobble] : [];
+    if (entries.length !== submissions.length) {
+      throw new LastFmUnavailable(`track.scrobble returned ${entries.length} results for ${submissions.length} Scrobbles`);
+    }
+    return entries.map(outcomeOf);
+  }
+
   protected async signedCall(method: string, params: Record<string, string>): Promise<Record<string, unknown>> {
     const signed = { ...params, method, api_key: this.apiKey };
     const form = { ...signed, api_sig: await signature(signed, this.sharedSecret), format: "json" };
@@ -78,4 +117,16 @@ export class LastFmClient {
     if (body.error !== undefined) throw new LastFmApiError(Number(body.error), String(body.message ?? ""));
     return body;
   }
+}
+
+function outcomeOf(entry: ScrobbleEntryJson): ScrobbleOutcome {
+  const ignoredCode = Number(entry.ignoredMessage?.code ?? 0) || 0;
+  if (ignoredCode !== 0) return { status: "ignored", code: ignoredCode, message: entry.ignoredMessage?.["#text"] ?? "" };
+  return {
+    status: "accepted",
+    artist: entry.artist?.["#text"] ?? "",
+    artistCorrected: entry.artist?.corrected === "1",
+    track: entry.track?.["#text"] ?? "",
+    trackCorrected: entry.track?.corrected === "1",
+  };
 }

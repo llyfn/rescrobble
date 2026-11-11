@@ -3,6 +3,7 @@ import { ConfigError, readConfig, type Config, type Env } from "./config.ts";
 import { preflight, withCors } from "./http.ts";
 import { LastFmClient } from "./lastfm.ts";
 import { me } from "./me.ts";
+import { submitScrobbles } from "./scrobbles.ts";
 import { SessionCodec } from "./session.ts";
 
 interface Services {
@@ -18,6 +19,7 @@ const routes: Record<string, Handler> = {
   "GET /api/config": (_request, { config }) =>
     Response.json({ lastFmApiKey: config.lastFmApiKey }, { headers: { "Cache-Control": "public, max-age=3600" } }),
   "GET /api/me": (request, { lastFm, sessions }) => me(request, lastFm, sessions),
+  "POST /api/scrobbles": (request, { config, lastFm, sessions }) => submitScrobbles(request, config, lastFm, sessions),
   "GET /auth/login": (_request, { config }) => login(config),
   "GET /auth/callback": (request, { config, lastFm, sessions }) => callback(request, config, lastFm, sessions),
   "POST /auth/session": (request, { lastFm, sessions }) => exchange(request, lastFm, sessions),
