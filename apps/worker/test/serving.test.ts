@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SELF } from "cloudflare:test";
 
-const get = (path: string) => SELF.fetch(`https://rescrobble.example${path}`);
+const get = (path: string) => SELF.fetch(`https://rescrobble.test${path}`);
 const ENTRY_PAGE = "<!doctype html><title>rescrobble</title>";
 
 describe("health and config", () => {
@@ -55,7 +55,7 @@ describe("serving the Web App", () => {
 
   it("keeps unknown API and auth paths 404, even for a browser navigation", async () => {
     for (const path of ["/api/unknown", "/api/me/extra", "/auth/unknown", "/api", "/auth"]) {
-      const response = await SELF.fetch(`https://rescrobble.example${path}`, { headers: { "Sec-Fetch-Mode": "navigate", Accept: "text/html" } });
+      const response = await SELF.fetch(`https://rescrobble.test${path}`, { headers: { "Sec-Fetch-Mode": "navigate", Accept: "text/html" } });
       expect(response.status, path).toBe(404);
     }
   });

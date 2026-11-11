@@ -1,11 +1,25 @@
+import { callback, exchange, login, logout } from "./auth.ts";
 import { ConfigError, readConfig, type Config, type Env } from "./config.ts";
+import { preflight, withCors } from "./http.ts";
+import { LastFmClient } from "./lastfm.ts";
+import { SessionCodec } from "./session.ts";
 
-type Handler = (request: Request, config: Config) => Promise<Response> | Response;
+interface Services {
+  config: Config;
+  lastFm: LastFmClient;
+  sessions: SessionCodec;
+}
+
+type Handler = (request: Request, services: Services) => Promise<Response> | Response;
 
 const routes: Record<string, Handler> = {
   "GET /health": () => new Response("ok"),
-  "GET /api/config": (_request, config) =>
+  "GET /api/config": (_request, { config }) =>
     Response.json({ lastFmApiKey: config.lastFmApiKey }, { headers: { "Cache-Control": "public, max-age=3600" } }),
+  "GET /auth/login": (_request, { config }) => login(config),
+  "GET /auth/callback": (request, { config, lastFm, sessions }) => callback(request, config, lastFm, sessions),
+  "POST /auth/session": (request, { lastFm, sessions }) => exchange(request, lastFm, sessions),
+  "POST /auth/logout": (request, { config }) => logout(request, config),
 };
 
 /** Paths the Worker owns; everything else is the Web App. Matches `run_worker_first` in the Wrangler config. */
@@ -24,8 +38,15 @@ export default {
       return new Response(e.message, { status: 500 });
     }
     const path = new URL(request.url).pathname;
+    if (!isServerPath(path)) return env.ASSETS.fetch(request);
+    if (request.method === "OPTIONS") return preflight(request, config);
+
     const handler = routes[`${request.method} ${path}`];
-    if (handler) return handler(request, config);
-    return isServerPath(path) ? new Response(null, { status: 404 }) : env.ASSETS.fetch(request);
+    const services = {
+      config,
+      lastFm: new LastFmClient(config.lastFmApiKey, config.lastFmSharedSecret),
+      sessions: new SessionCodec(config.sessionEncryptionKey),
+    };
+    return withCors(request, config, handler ? await handler(request, services) : new Response(null, { status: 404 }));
   },
 } satisfies ExportedHandler<Env>;

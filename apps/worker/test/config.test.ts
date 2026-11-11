@@ -5,7 +5,7 @@ import { readConfig, type Env } from "../src/config.ts";
 
 const complete: Env = env as Env;
 const healthWith = (overrides: Partial<Record<Exclude<keyof Env, "ASSETS">, string | undefined>>) =>
-  worker.fetch(new Request("https://rescrobble.example/health"), { ...complete, ...overrides });
+  worker.fetch(new Request("https://rescrobble.test/health"), { ...complete, ...overrides });
 
 describe("configuration", () => {
   it("loads every required value", () => {
@@ -14,14 +14,14 @@ describe("configuration", () => {
     expect(config).toMatchObject({
       lastFmApiKey: "test-api-key",
       lastFmSharedSecret: "test-shared-secret",
-      publicBaseUrl: "https://rescrobble.example",
-      extensionId: "abcdefghijklmnopabcdefghijklmnop",
+      publicBaseUrl: "https://rescrobble.test",
+      extensionId: "testextensionid",
     });
     expect(config.sessionEncryptionKey).toHaveLength(32);
   });
 
   it("drops a trailing slash on the public base URL", () => {
-    expect(readConfig({ ...complete, PUBLIC_BASE_URL: "https://rescrobble.example/" }).publicBaseUrl).toBe("https://rescrobble.example");
+    expect(readConfig({ ...complete, PUBLIC_BASE_URL: "https://rescrobble.test/" }).publicBaseUrl).toBe("https://rescrobble.test");
   });
 
   it("answers every request with a 500 naming every missing value at once", async () => {
