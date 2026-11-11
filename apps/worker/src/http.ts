@@ -1,4 +1,5 @@
 import type { Config } from "./config.ts";
+import { INVALID_SESSION, LastFmApiError } from "./lastfm.ts";
 import type { SessionCodec, UserSession } from "./session.ts";
 
 export const SESSION_COOKIE = "rescrobble_session";
@@ -6,6 +7,14 @@ export const SESSION_COOKIE = "rescrobble_session";
 const COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 
 export const errorResponse = (status: number, error: string, headers?: HeadersInit) => Response.json({ error }, { status, headers });
+
+const RETRY_AFTER_SECONDS = 60;
+
+/** A revoked session means signing in again; anything else from Last.fm is worth retrying later. */
+export function lastFmFailure(failure: unknown): Response {
+  if (failure instanceof LastFmApiError && failure.code === INVALID_SESSION) return errorResponse(401, "sessionInvalid");
+  return errorResponse(503, "lastFmUnavailable", { "Retry-After": String(RETRY_AFTER_SECONDS) });
+}
 
 export function sessionCookie(config: Config, value: string, maxAge = COOKIE_MAX_AGE): string {
   const secure = config.publicBaseUrl.startsWith("https://") ? "; Secure" : "";

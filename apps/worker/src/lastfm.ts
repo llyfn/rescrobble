@@ -8,6 +8,12 @@ export interface LastFmSession {
   sessionKey: string;
 }
 
+export interface LastFmUser {
+  name: string;
+  /** Null when Last.fm doesn't say. */
+  pro: boolean | null;
+}
+
 /** Last.fm answered with an API error code. */
 export class LastFmApiError extends Error {
   constructor(readonly code: number, message: string) {
@@ -40,6 +46,15 @@ export class LastFmClient {
     const session = (await this.signedCall("auth.getSession", { token })).session as { name?: string; key?: string } | undefined;
     if (!session?.name || !session.key) throw new LastFmUnavailable("auth.getSession response has no session");
     return { username: session.name, sessionKey: session.key };
+  }
+
+  /** Signed with the session key and no `user`, so Last.fm answers for, and validates, that session. */
+  async getAuthenticatedUser(sessionKey: string): Promise<LastFmUser> {
+    const user = (await this.signedCall("user.getInfo", { sk: sessionKey })).user as { name?: string; subscriber?: unknown } | undefined;
+    if (!user?.name) throw new LastFmUnavailable("user.getInfo response has no user");
+    // Last.fm doesn't define `subscriber`; clients read it as the Pro flag, sent as "1"/"0".
+    const flag = String(user.subscriber);
+    return { name: user.name, pro: flag === "1" || flag === "true" ? true : flag === "0" || flag === "false" ? false : null };
   }
 
   protected async signedCall(method: string, params: Record<string, string>): Promise<Record<string, unknown>> {

@@ -53,6 +53,12 @@ describe("serving the Web App", () => {
     expect(await response.text()).toBe(ENTRY_PAGE);
   });
 
+  it("still answers API, auth and health routes alongside the Web App", async () => {
+    expect(await (await get("/health")).text()).toBe("ok");
+    expect((await get("/api/me")).status).toBe(401);
+    expect((await SELF.fetch("https://rescrobble.test/auth/login", { redirect: "manual" })).status).toBe(302);
+  });
+
   it("keeps unknown API and auth paths 404, even for a browser navigation", async () => {
     for (const path of ["/api/unknown", "/api/me/extra", "/auth/unknown", "/api", "/auth"]) {
       const response = await SELF.fetch(`https://rescrobble.test${path}`, { headers: { "Sec-Fetch-Mode": "navigate", Accept: "text/html" } });
