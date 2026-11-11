@@ -7,6 +7,7 @@ const backendOrigin = process.env.WXT_BACKEND_ORIGIN || DEFAULT_BACKEND_ORIGIN;
 
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
+  zip: { name: "rescrobble" },
   manifest: {
     name: "rescrobble",
     description: "Find, fix and remove Last.fm scrobbles in bulk, and add the plays Last.fm missed.",
