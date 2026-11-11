@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent, type ReactNode } from "react";
+import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { strings } from "./strings.ts";
 import { useSuggestions, type Search } from "./suggestions.ts";
 
@@ -23,6 +23,7 @@ export function Combobox<T>({ id, label, name, value, onChange, search, onPick, 
   const options = useSuggestions(open ? value : "", search);
   const expanded = open && options.length > 0;
   const listId = `${id}-list`;
+  const input = useRef<HTMLInputElement>(null);
 
   function pick(option: T) {
     onPick(option);
@@ -49,8 +50,9 @@ export function Combobox<T>({ id, label, name, value, onChange, search, onPick, 
   return (
     <div className="rs-field">
       <label className="rs-label" htmlFor={id}>{label}</label>
-      <div className="rs-combobox">
+      <div className={value ? "rs-combobox rs-combobox--filled" : "rs-combobox"}>
         <input
+          ref={input}
           id={id}
           name={name}
           className="rs-input"
@@ -72,6 +74,22 @@ export function Combobox<T>({ id, label, name, value, onChange, search, onPick, 
           onKeyDown={onKeyDown}
           onBlur={() => setOpen(false)}
         />
+        {value && (
+          <button
+            type="button"
+            className="rs-clear"
+            aria-label={strings.clear(label)}
+            tabIndex={-1}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              onChange("");
+              setActive(-1);
+              input.current?.focus();
+            }}
+          >
+            <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" /></svg>
+          </button>
+        )}
         <ul className="rs-listbox" id={listId} role="listbox" aria-label={strings.suggestions(label)} hidden={!expanded}>
           {expanded && options.map((option, i) => (
             <li

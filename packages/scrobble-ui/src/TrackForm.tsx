@@ -1,5 +1,6 @@
 import { useCallback, useId, useRef, useState, type FormEvent } from "react";
-import { checkTimestamp, type TrackMatch } from "@rescrobble/core";
+import { checkTimestamp, type AlbumMatch, type TrackMatch } from "@rescrobble/core";
+import { Art } from "./Art.tsx";
 import { Combobox } from "./Combobox.tsx";
 import { useLastFmReader } from "./lastfm.ts";
 import { useTransport } from "./context.ts";
@@ -37,12 +38,51 @@ export function TrackForm({ onResults }: { onResults: (entries: ScrobbleEntry[],
   const [failure, setFailure] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
+  /** Whether Album holds the picked track's album rather than something the user chose. */
+  const albumFromTrack = useRef(false);
+  const albumLookup = useRef<AbortController | null>(null);
   const reader = useLastFmReader();
   const searchTracks = useCallback(
     async (query: string, signal: AbortSignal): Promise<TrackMatch[]> =>
       reader ? reader.searchTracks(query, { artist: artist.trim() || undefined, signal }) : [],
     [reader, artist],
   );
+  const searchArtists = useCallback(
+    async (query: string, signal: AbortSignal): Promise<string[]> => (reader ? reader.searchArtists(query, { signal }) : []),
+    [reader],
+  );
+  const searchAlbums = useCallback(
+    async (query: string, signal: AbortSignal): Promise<AlbumMatch[]> => {
+      if (!reader) return [];
+      const matches = await reader.searchAlbums(query, { signal });
+      const wanted = artist.trim().toLowerCase();
+      return wanted ? matches.filter((m) => m.artist.toLowerCase().includes(wanted)) : matches;
+    },
+    [reader, artist],
+  );
+
+  function changeTrack(value: string) {
+    albumLookup.current?.abort();
+    setTrack(value);
+  }
+
+  function changeAlbum(value: string) {
+    albumLookup.current?.abort();
+    albumFromTrack.current = false;
+    setAlbum(value);
+  }
+
+  /** Fills Album with the picked track's album, unless the user chose an album themselves. */
+  async function fillAlbum(match: TrackMatch) {
+    albumLookup.current?.abort();
+    if (!reader || (album.trim() && !albumFromTrack.current)) return;
+    const controller = new AbortController();
+    albumLookup.current = controller;
+    const found = await reader.getTrackAlbum(match.artist, match.track, { signal: controller.signal }).catch(() => null);
+    if (controller.signal.aborted) return;
+    albumFromTrack.current = true;
+    setAlbum(found?.album ?? "");
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -67,32 +107,12 @@ export function TrackForm({ onResults }: { onResults: (entries: ScrobbleEntry[],
     }
     onResults([entry], result.outcomes);
     if (result.outcomes[0]?.status === "accepted") {
-      setTrack("");
-      setAlbum("");
+      changeTrack("");
+      changeAlbum("");
     }
   }
 
-  const field = (name: Field | "album", label: string, value: string, set: (v: string) => void, extra: object = {}) => {
-    const error = name !== "album" ? errors[name] : undefined;
-    return (
-      <div className="rs-field">
-        <label className="rs-label" htmlFor={`${id}-${name}`}>{label}</label>
-        <input
-          id={`${id}-${name}`}
-          className="rs-input"
-          name={name}
-          value={value}
-          onChange={(e) => set(e.target.value)}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `${id}-${name}-error` : undefined}
-          autoComplete="off"
-          {...extra}
-        />
-        {error && <span className="rs-hint rs-hint--error" id={`${id}-${name}-error`}>{error}</span>}
-      </div>
-    );
-  };
-
+  const playedAtError = errors.playedAt;
   return (
     <form className="add-form" onSubmit={submit} noValidate>
       {failure && (
@@ -101,17 +121,17 @@ export function TrackForm({ onResults }: { onResults: (entries: ScrobbleEntry[],
           <span>{failure}</span>
         </div>
       )}
-      {field("artist", t.artist, artist, setArtist)}
       <Combobox
         id={`${id}-track`}
         name="track"
         label={t.track}
         value={track}
-        onChange={setTrack}
+        onChange={changeTrack}
         search={searchTracks}
         onPick={(match) => {
           setArtist(match.artist);
-          setTrack(match.track);
+          changeTrack(match.track);
+          void fillAlbum(match);
         }}
         optionKey={(match) => `${match.artist}\u0000${match.track}`}
         renderOption={(match) => (
@@ -122,8 +142,53 @@ export function TrackForm({ onResults }: { onResults: (entries: ScrobbleEntry[],
         )}
         error={errors.track}
       />
-      {field("album", t.album, album, setAlbum, { placeholder: t.albumHint })}
-      {field("playedAt", t.playedAt, playedAt, setPlayedAt, { type: "datetime-local", className: "rs-input rs-num" })}
+      <Combobox
+        id={`${id}-artist`}
+        name="artist"
+        label={t.artist}
+        value={artist}
+        onChange={setArtist}
+        search={searchArtists}
+        onPick={setArtist}
+        optionKey={(name) => name}
+        renderOption={(name) => <span>{name}</span>}
+        error={errors.artist}
+      />
+      <Combobox
+        id={`${id}-album`}
+        name="album"
+        label={t.album}
+        value={album}
+        onChange={changeAlbum}
+        search={searchAlbums}
+        onPick={(match) => {
+          changeAlbum(match.album);
+          if (!artist.trim()) setArtist(match.artist);
+        }}
+        optionKey={(match) => `${match.artist}\u0000${match.album}`}
+        renderOption={(match) => (
+          <>
+            <Art src={match.image} />
+            <span className="rs-option__primary">{match.album}</span>
+            <span className="rs-option__secondary">{match.artist}</span>
+          </>
+        )}
+        placeholder={t.albumHint}
+      />
+      <div className="rs-field">
+        <label className="rs-label" htmlFor={`${id}-playedAt`}>{t.playedAt}</label>
+        <input
+          id={`${id}-playedAt`}
+          className="rs-input rs-num"
+          name="playedAt"
+          type="datetime-local"
+          value={playedAt}
+          onChange={(e) => setPlayedAt(e.target.value)}
+          aria-invalid={playedAtError ? true : undefined}
+          aria-describedby={playedAtError ? `${id}-playedAt-error` : undefined}
+        />
+        {playedAtError && <span className="rs-hint rs-hint--error" id={`${id}-playedAt-error`}>{playedAtError}</span>}
+      </div>
       <button className="rs-btn rs-btn--primary rs-btn--block" type="submit" aria-busy={busy || undefined}>{t.submit}</button>
     </form>
   );

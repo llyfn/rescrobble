@@ -1,6 +1,7 @@
 import { useCallback, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { checkTimestamp, timeAlbum, type Album, type AlbumMatch } from "@rescrobble/core";
 import { useTransport } from "./context.ts";
+import { Art } from "./Art.tsx";
 import { Combobox } from "./Combobox.tsx";
 import { describeFailure } from "./failures.ts";
 import { useLastFmReader } from "./lastfm.ts";
@@ -45,6 +46,15 @@ export function AlbumForm({ onResults }: { onResults: (entries: ScrobbleEntry[],
     },
     [reader, artist],
   );
+  const searchArtists = useCallback(
+    async (query: string, signal: AbortSignal): Promise<string[]> => (reader ? reader.searchArtists(query, { signal }) : []),
+    [reader],
+  );
+
+  function changeArtist(value: string) {
+    setArtist(value);
+    setLoaded(null);
+  }
 
   async function load(forArtist: string, forAlbum: string) {
     setLookupNotice(null);
@@ -125,45 +135,41 @@ export function AlbumForm({ onResults }: { onResults: (entries: ScrobbleEntry[],
           <span>{failure}</span>
         </div>
       )}
-      <div className="pair">
-        <div className="rs-field">
-          <label className="rs-label" htmlFor={`${id}-artist`}>{a.artist}</label>
-          <input
-            id={`${id}-artist`}
-            className="rs-input"
-            name="artist"
-            autoComplete="off"
-            value={artist}
-            onChange={(e) => {
-              setArtist(e.target.value);
-              setLoaded(null);
-            }}
-          />
-        </div>
-        <Combobox
-          id={`${id}-album`}
-          name="album"
-          label={a.album}
-          value={albumName}
-          onChange={(value) => {
-            setAlbumName(value);
-            setLoaded(null);
-          }}
-          search={searchAlbums}
-          onPick={(match) => {
-            setArtist(match.artist);
-            setAlbumName(match.album);
-            void load(match.artist, match.album);
-          }}
-          optionKey={(match) => `${match.artist}\u0000${match.album}`}
-          renderOption={(match) => (
-            <>
-              <span>{match.album}</span>
-              <span className="rs-option__secondary">{match.artist}</span>
-            </>
-          )}
-        />
-      </div>
+      <Combobox
+        id={`${id}-album`}
+        name="album"
+        label={a.album}
+        value={albumName}
+        onChange={(value) => {
+          setAlbumName(value);
+          setLoaded(null);
+        }}
+        search={searchAlbums}
+        onPick={(match) => {
+          setArtist(match.artist);
+          setAlbumName(match.album);
+          void load(match.artist, match.album);
+        }}
+        optionKey={(match) => `${match.artist}\u0000${match.album}`}
+        renderOption={(match) => (
+          <>
+            <Art src={match.image} />
+            <span className="rs-option__primary">{match.album}</span>
+            <span className="rs-option__secondary">{match.artist}</span>
+          </>
+        )}
+      />
+      <Combobox
+        id={`${id}-artist`}
+        name="artist"
+        label={a.artist}
+        value={artist}
+        onChange={changeArtist}
+        search={searchArtists}
+        onPick={changeArtist}
+        optionKey={(name) => name}
+        renderOption={(name) => <span>{name}</span>}
+      />
 
       {lookupNotice && (
         <div className="rs-notice rs-notice--warn" role="status">

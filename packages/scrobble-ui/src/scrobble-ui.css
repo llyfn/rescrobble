@@ -10,7 +10,6 @@
 .results .why { grid-column: 1 / -1; font: var(--rs-text-small); color: var(--rs-ink-2); }
 .results .rs-edit { grid-column: 1 / -1; }
 .panel { padding-top: var(--rs-space-5); }
-.pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--rs-space-3); }
 .tracks { margin: 0; padding: 0; list-style: none; border-top: var(--rs-hairline) solid var(--rs-line); }
 .tracks li { display: grid; grid-template-columns: 1.25rem 16px 1fr auto 3.2em; gap: var(--rs-space-3); align-items: center; min-height: var(--rs-touch); border-bottom: var(--rs-hairline) solid var(--rs-line-soft); font: var(--rs-text-data); }
 .tracks .n, .tracks .d { color: var(--rs-ink-3); }

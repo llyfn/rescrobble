@@ -7,11 +7,21 @@ import { renderSignedIn, scrobbleEndpoint } from "./test/app.tsx";
 
 interface Search { track: string | null; artist: string | null; apiKey: string | null }
 
-/** Answers track.search with `matches(query)` and records each search. */
-function lastFmTrackSearch(matches: (query: string) => [string, string][], latency: (query: string) => number = () => 0) {
+/** Answers track.search with `matches(query)` and records each search. Tracks are filed under no album unless `albums` names one. */
+function lastFmTrackSearch(
+  matches: (query: string) => [string, string][],
+  latency: (query: string) => number = () => 0,
+  albums: Record<string, string> = {},
+) {
   const searches: Search[] = [];
   server.use(http.get(LASTFM_API_URL, async ({ request }) => {
     const url = new URL(request.url);
+    const method = url.searchParams.get("method");
+    if (method === "track.getInfo") {
+      const album = albums[url.searchParams.get("track") ?? ""];
+      return HttpResponse.json({ track: { name: url.searchParams.get("track"), ...(album ? { album: { title: album, image: [] } } : {}) } });
+    }
+    if (method !== "track.search") return HttpResponse.json({ results: {} });
     const query = url.searchParams.get("track") ?? "";
     searches.push({ track: query, artist: url.searchParams.get("artist"), apiKey: url.searchParams.get("api_key") });
     await delay(latency(query));
@@ -106,5 +116,93 @@ describe("track suggestions", () => {
 
     await user.click(screen.getByRole("button", { name: "Add scrobble" }));
     await waitFor(() => expect(requests).toHaveLength(1));
+  });
+});
+
+const input = (label: string) => screen.getByLabelText(label, { selector: "input" });
+
+describe("the Add track form", () => {
+  it("asks for the track first, then the artist and album", async () => {
+    await renderSignedIn();
+
+    const fields = [...document.querySelectorAll("form label")].map((l) => l.textContent);
+    expect(fields).toEqual(["Track", "Artist", "Album", "Played at"]);
+  });
+
+  it("fills Album with the picked track's album", async () => {
+    lastFmTrackSearch(() => [["Radiohead", "Paranoid Android"], ["Radiohead", "Let Down"]], undefined, { "Paranoid Android": "OK Computer" });
+    const { user } = await renderSignedIn();
+
+    await user.type(input("Track"), "paranoid");
+    await user.click(within(await suggestionList()).getByRole("option", { name: /Paranoid Android/ }));
+
+    await waitFor(() => expect(input("Album")).toHaveValue("OK Computer"));
+  });
+
+  it("replaces a filled-in album when another track is picked, and keeps one the user typed", async () => {
+    lastFmTrackSearch(() => [["Radiohead", "Paranoid Android"], ["Radiohead", "Let Down"]], undefined, { "Paranoid Android": "OK Computer" });
+    const { user } = await renderSignedIn();
+
+    await user.type(input("Track"), "paranoid");
+    await user.click(within(await suggestionList()).getByRole("option", { name: /Paranoid Android/ }));
+    await waitFor(() => expect(input("Album")).toHaveValue("OK Computer"));
+
+    await user.clear(input("Track"));
+    await user.type(input("Track"), "let");
+    await user.click(within(await suggestionList()).getByRole("option", { name: /Let Down/ }));
+    await waitFor(() => expect(input("Album")).toHaveValue(""));
+
+    await user.type(input("Album"), "My Mixtape");
+    await user.clear(input("Track"));
+    await user.type(input("Track"), "paranoid");
+    await user.click(within(await suggestionList()).getByRole("option", { name: /Paranoid Android/ }));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(input("Album")).toHaveValue("My Mixtape");
+  });
+
+  it("suggests artists and fills Artist when one is picked", async () => {
+    server.use(http.get(LASTFM_API_URL, ({ request }) => {
+      const params = new URL(request.url).searchParams;
+      if (params.get("method") !== "artist.search") return HttpResponse.json({ results: {} });
+      return HttpResponse.json({ results: { artistmatches: { artist: [{ name: "Radiohead" }, { name: "Radio Dept." }] } } });
+    }));
+    const { user } = await renderSignedIn();
+
+    await user.type(input("Artist"), "radio");
+    await user.click(within(await screen.findByRole("listbox", { name: "Artist suggestions" })).getByRole("option", { name: "Radiohead" }));
+
+    expect(input("Artist")).toHaveValue("Radiohead");
+  });
+
+  it("suggests albums with their art, and fills the artist from a picked album when none is entered", async () => {
+    server.use(http.get(LASTFM_API_URL, ({ request }) => {
+      const params = new URL(request.url).searchParams;
+      if (params.get("method") !== "album.search") return HttpResponse.json({ results: {} });
+      return HttpResponse.json({ results: { albummatches: { album: [
+        { name: "OK Computer", artist: "Radiohead", image: [{ size: "large", "#text": "https://lastfm.freetls.fastly.net/i/u/174s/ok.png" }] },
+        { name: "OK Computer", artist: "Tribute", image: [{ size: "large", "#text": "" }] },
+      ] } } });
+    }));
+    const { user, container } = await renderSignedIn();
+
+    await user.type(input("Album"), "ok comp");
+    const list = await screen.findByRole("listbox", { name: "Album suggestions" });
+
+    expect([...container.querySelectorAll(".rs-listbox .rs-art")].map((a) => a.getAttribute("src"))).toEqual(["https://lastfm.freetls.fastly.net/i/u/174s/ok.png", null]);
+    await user.click(within(list).getByRole("option", { name: /Radiohead/ }));
+    expect(input("Album")).toHaveValue("OK Computer");
+    expect(input("Artist")).toHaveValue("Radiohead");
+  });
+
+  it("empties a field with its clear button, which appears only once there is text", async () => {
+    const { user } = await renderSignedIn();
+
+    expect(screen.queryByRole("button", { name: "Clear Track" })).not.toBeInTheDocument();
+    await user.type(input("Track"), "Believe");
+    await user.click(screen.getByRole("button", { name: "Clear Track" }));
+
+    expect(input("Track")).toHaveValue("");
+    expect(input("Track")).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Clear Track" })).not.toBeInTheDocument();
   });
 });

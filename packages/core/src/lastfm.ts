@@ -8,6 +8,14 @@ export interface TrackMatch {
 export interface AlbumMatch {
   artist: string;
   album: string;
+  /** Album art, or null when Last.fm has none. */
+  image: string | null;
+}
+
+/** The album Last.fm files a track under. */
+export interface TrackAlbum {
+  album: string;
+  image: string | null;
 }
 
 export interface AlbumTrack {
@@ -40,6 +48,15 @@ export interface RecentTracksPage {
 /** Last.fm's code for an artist, album or track it doesn't know. */
 const NOT_FOUND = 6;
 
+/** Last.fm's grey star, sent in place of art it doesn't have. */
+const PLACEHOLDER_IMAGE = "2a96cbd8b46e442fc41c2b86b821562f";
+
+/** The 174px art (crisp at 40px on high-density screens), or null for none or the placeholder. */
+function imageUrl(images: LastFmImage[] | undefined): string | null {
+  const url = images?.find((i) => i.size === "large")?.["#text"];
+  return url && !url.includes(PLACEHOLDER_IMAGE) ? url : null;
+}
+
 /** Last.fm's JSON sends a one-item list as a bare object, and an empty one as nothing at all. */
 export function asList<T>(value: T | T[] | undefined | null): T[] {
   if (value == null) return [];
@@ -64,7 +81,25 @@ export class LastFmReader {
   async searchAlbums(album: string, options: { limit?: number; signal?: AbortSignal } = {}): Promise<AlbumMatch[]> {
     const body = await this.get("album.search", { album, limit: String(options.limit ?? 8) }, options.signal);
     const matches = asList((body as AlbumSearchResponse).results?.albummatches?.album);
-    return matches.map((m) => ({ artist: m.artist, album: m.name }));
+    return matches.map((m) => ({ artist: m.artist, album: m.name, image: imageUrl(m.image) }));
+  }
+
+  async searchArtists(artist: string, options: { limit?: number; signal?: AbortSignal } = {}): Promise<string[]> {
+    const body = await this.get("artist.search", { artist, limit: String(options.limit ?? 8) }, options.signal);
+    return asList((body as ArtistSearchResponse).results?.artistmatches?.artist).map((m) => m.name);
+  }
+
+  /** The album of a track, or null when Last.fm doesn't know the track or files it under no album. */
+  async getTrackAlbum(artist: string, track: string, options: { signal?: AbortSignal } = {}): Promise<TrackAlbum | null> {
+    let body: unknown;
+    try {
+      body = await this.get("track.getInfo", { artist, track, autocorrect: "1" }, options.signal);
+    } catch (e) {
+      if (e instanceof LastFmError && e.code === NOT_FOUND) return null;
+      throw e;
+    }
+    const album = (body as TrackInfoResponse).track?.album;
+    return album?.title ? { album: album.title, image: imageUrl(album.image) } : null;
   }
 
   /** The album with its tracklist, or null when Last.fm doesn't know the album. */
@@ -151,8 +186,27 @@ interface RecentTracksResponse {
   };
 }
 
+interface LastFmImage {
+  "#text": string;
+  size: string;
+}
+
+interface AlbumSearchMatch {
+  name: string;
+  artist: string;
+  image?: LastFmImage[];
+}
+
 interface AlbumSearchResponse {
-  results?: { albummatches?: { album?: { name: string; artist: string } | { name: string; artist: string }[] } };
+  results?: { albummatches?: { album?: AlbumSearchMatch | AlbumSearchMatch[] } };
+}
+
+interface ArtistSearchResponse {
+  results?: { artistmatches?: { artist?: { name: string } | { name: string }[] } };
+}
+
+interface TrackInfoResponse {
+  track?: { album?: { title?: string; image?: LastFmImage[] } };
 }
 
 interface AlbumInfoTrack {

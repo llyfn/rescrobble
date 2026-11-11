@@ -220,4 +220,15 @@ a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; 
 }
 .rs-option:hover { background: var(--rs-surface-sunken); }
 .rs-option[aria-selected="true"] { background: var(--rs-line-soft); }
+.rs-option__primary { flex: 1; min-width: 0; }
 .rs-option__secondary { color: var(--rs-ink-2); text-align: right; }
+.rs-art { flex: none; width: 40px; height: 40px; object-fit: cover; background: var(--rs-surface-sunken); }
+/* The clear button's 10px glyph sits as far from the edge as the text, like the select chevron. */
+.rs-combobox--filled .rs-input { padding-right: calc(var(--rs-space-3) + 10px + var(--rs-space-2)); }
+.rs-clear {
+  position: absolute; top: 50%; right: calc(var(--rs-space-3) - 9px); transform: translateY(-50%);
+  display: grid; place-content: center; width: 28px; height: 28px; padding: 0;
+  color: var(--rs-ink-2); background: none; border: 0; cursor: pointer;
+}
+.rs-clear:hover { color: var(--rs-ink); }
+.rs-clear svg { width: 10px; height: 10px; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; fill: none; }

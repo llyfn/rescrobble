@@ -61,6 +61,13 @@ afterEach(() => {
 });
 
 describe("finding an album", () => {
+  it("asks for the album first, then the artist", async () => {
+    await openAlbumTab();
+
+    const fields = [...document.querySelectorAll("form label")].map((l) => l.textContent);
+    expect(fields).toEqual(["Album", "Artist"]);
+  });
+
   it("loads the tracklist when an album suggestion is picked", async () => {
     const lookups = lastFmAlbum("Radiohead", "OK Computer", radiohead);
     const { user } = await openAlbumTab();

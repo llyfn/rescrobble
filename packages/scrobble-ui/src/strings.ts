@@ -2,6 +2,7 @@
 export const strings = {
   heading: "Add scrobbles",
   suggestions: (field: string) => `${field} suggestions`,
+  clear: (field: string) => `Clear ${field}`,
   track: {
     artist: "Artist",
     track: "Track",
