@@ -14,6 +14,7 @@ export const strings = {
     signInFailed: "Sign-in didn't complete. Try again.",
   },
   footer: "Powered by AudioScrobbler",
+  lastFmUrl: "https://www.last.fm",
   privacyLink: "Privacy",
   privacy: {
     heading: "Privacy",

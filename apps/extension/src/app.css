@@ -7,6 +7,7 @@ html, body, #root { height: 100%; }
 .rs-rail__foot .account { color: var(--rs-shell-ink); font-weight: 600; }
 .rs-rail__foot .sign-out { color: var(--rs-shell-ink-2); padding: 0; min-height: 28px; margin-top: var(--rs-space-1); }
 .rs-rail__foot .sign-out:hover { color: var(--rs-shell-ink); border-color: transparent; }
+.rs-rail__foot .attribution { margin-top: var(--rs-space-3); }
 .work { min-width: 0; min-height: 0; overflow: auto; }
 .placeholder { margin: 0; padding: var(--rs-space-5) var(--rs-space-6); font: var(--rs-text-heading); }
 .add-page { max-width: 560px; padding: var(--rs-space-6); }

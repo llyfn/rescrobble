@@ -173,4 +173,5 @@ export const strings = {
   },
   sessionEnded: "Your Last.fm session has ended. Log in again.",
   footer: "Powered by AudioScrobbler",
+  lastFmUrl: "https://www.last.fm",
 };

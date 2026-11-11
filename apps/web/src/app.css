@@ -5,7 +5,7 @@
 .signed-out { display: grid; gap: var(--rs-space-4); align-content: start; }
 .signed-out p { margin: 0; }
 .signed-out .extension { margin-top: var(--rs-space-4); padding-top: var(--rs-space-4); border-top: var(--rs-hairline) solid var(--rs-line); color: var(--rs-ink-2); }
-.footer { display: flex; justify-content: center; gap: var(--rs-space-4); padding: var(--rs-space-4); font: var(--rs-text-small); color: var(--rs-ink-3); border-top: var(--rs-hairline) solid var(--rs-line); }
+.footer { display: flex; justify-content: center; align-items: center; gap: var(--rs-space-4); padding: var(--rs-space-4); font: var(--rs-text-small); color: var(--rs-ink-3); border-top: var(--rs-hairline) solid var(--rs-line); }
 .rs-topbar a.rs-topbar__brand { text-decoration: none; }
 .privacy p { margin: 0 0 var(--rs-space-3); }
 .privacy h2 { margin: var(--rs-space-6) 0 var(--rs-space-2); font: var(--rs-text-title); }

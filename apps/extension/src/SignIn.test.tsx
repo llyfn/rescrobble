@@ -12,6 +12,12 @@ describe("signing in", () => {
     expect(await screen.findByRole("button", { name: "Log in with Last.fm" })).toBeInTheDocument();
   });
 
+  it("credits AudioScrobbler with a link back to Last.fm", async () => {
+    renderApp();
+
+    expect(await screen.findByRole("link", { name: "Powered by AudioScrobbler" })).toHaveAttribute("href", "https://www.last.fm");
+  });
+
   it("approves on last.fm, exchanges the token, stores the session and shows the account", async () => {
     const launched = lastFmApproval("lastfm-token");
     const backend = backendFor("rj", true);
@@ -91,5 +97,11 @@ describe("the shell", () => {
 
     expect(screen.getByRole("link", { name: "Change log" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("heading", { name: "Change log" })).toBeInTheDocument();
+  });
+
+  it("credits AudioScrobbler in the rail with a link back to Last.fm", async () => {
+    await renderSignedIn();
+
+    expect(screen.getByRole("link", { name: "Powered by AudioScrobbler" })).toHaveAttribute("href", "https://www.last.fm");
   });
 });

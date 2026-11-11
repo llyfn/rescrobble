@@ -90,7 +90,7 @@ export function App({ gateway: providedGateway }: { gateway?: WebsiteGateway } =
           {s.logIn}
         </button>
         <p className="rs-hint">{s.privacy}</p>
-        <p className="rs-hint">{strings.footer}</p>
+        <p><a className="rs-attribution" href={strings.lastFmUrl} target="_blank" rel="noopener noreferrer">{strings.footer}</a></p>
       </main>
     );
   }
@@ -139,6 +139,7 @@ function Shell({ session, pro, transport, gateway, onSignOut }: ShellProps) {
           <span className="account">{session.username}</span>
           {pro !== null && <span>{pro ? strings.account.pro : strings.account.free}</span>}
           <button type="button" className="rs-btn rs-btn--quiet sign-out" onClick={onSignOut}>{strings.account.signOut}</button>
+          <a className="rs-attribution attribution" href={strings.lastFmUrl} target="_blank" rel="noopener noreferrer">{strings.footer}</a>
         </div>
       </nav>
       <main className="work">
