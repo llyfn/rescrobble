@@ -1,6 +1,9 @@
-/** The Worker's vars and secrets, as Cloudflare passes them. Any may be missing from a misconfigured deployment. */
+import type { AccountLimits } from "./limits.ts";
+
+/** The Worker's bindings, vars and secrets. Any var or secret may be missing from a misconfigured deployment. */
 export interface Env {
   ASSETS: Fetcher;
+  LIMITS: DurableObjectNamespace<AccountLimits>;
   LASTFM_API_KEY?: string;
   LASTFM_SHARED_SECRET?: string;
   SESSION_ENCRYPTION_KEY?: string;

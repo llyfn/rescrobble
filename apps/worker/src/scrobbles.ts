@@ -2,6 +2,7 @@ import { checkTimestamp } from "@rescrobble/core";
 import type { Config } from "./config.ts";
 import { errorResponse, isCookieRequestFromElsewhere, lastFmFailure, signedInUser } from "./http.ts";
 import { MAX_BATCH, type LastFmClient, type ScrobbleOutcome, type ScrobbleSubmission } from "./lastfm.ts";
+import { limitsFor, type AccountLimits } from "./limits.ts";
 import type { SessionCodec } from "./session.ts";
 
 type Rejected = { status: "rejected"; reason: "missingField"; field: "artist" | "track" | "timestamp" } | { status: "rejected"; reason: "tooOld" | "inFuture" };
@@ -23,7 +24,13 @@ function validate(entry: Record<string, unknown>, nowSeconds: number): Checked {
   return { valid: submission };
 }
 
-export async function submitScrobbles(request: Request, config: Config, lastFm: LastFmClient, sessions: SessionCodec): Promise<Response> {
+export async function submitScrobbles(
+  request: Request,
+  config: Config,
+  lastFm: LastFmClient,
+  sessions: SessionCodec,
+  limits: DurableObjectNamespace<AccountLimits>,
+): Promise<Response> {
   if (isCookieRequestFromElsewhere(request, config)) return new Response(null, { status: 403 });
   const session = await signedInUser(request, sessions);
   if (!session) return new Response(null, { status: 401 });
@@ -32,14 +39,20 @@ export async function submitScrobbles(request: Request, config: Config, lastFm: 
   const entries = body?.scrobbles;
   if (!Array.isArray(entries) || entries.length < 1 || entries.length > MAX_BATCH) return errorResponse(400, "batchSize");
 
-  const nowSeconds = Math.floor(Date.now() / 1000);
+  const now = Date.now();
+  const nowSeconds = Math.floor(now / 1000);
   const checked = entries.map((e) => validate(typeof e === "object" && e !== null ? e as Record<string, unknown> : {}, nowSeconds));
   const submissions = checked.flatMap((c) => ("valid" in c ? [c.valid] : []));
+
+  const account = await limitsFor(limits, session.sessionKey);
+  const decision = await account.tryAcquire(submissions.length, now);
+  if (!decision.allowed) return errorResponse(429, decision.reason, { "Retry-After": String(decision.retryAfterSeconds) });
 
   let outcomes: ScrobbleOutcome[];
   try {
     outcomes = submissions.length === 0 ? [] : await lastFm.scrobble(session.sessionKey, submissions);
   } catch (e) {
+    await account.refund(decision.reservation);
     return lastFmFailure(e);
   }
   let next = 0;

@@ -6,7 +6,10 @@ import { me } from "./me.ts";
 import { submitScrobbles } from "./scrobbles.ts";
 import { SessionCodec } from "./session.ts";
 
+export { AccountLimits } from "./limits.ts";
+
 interface Services {
+  env: Env;
   config: Config;
   lastFm: LastFmClient;
   sessions: SessionCodec;
@@ -19,7 +22,7 @@ const routes: Record<string, Handler> = {
   "GET /api/config": (_request, { config }) =>
     Response.json({ lastFmApiKey: config.lastFmApiKey }, { headers: { "Cache-Control": "public, max-age=3600" } }),
   "GET /api/me": (request, { lastFm, sessions }) => me(request, lastFm, sessions),
-  "POST /api/scrobbles": (request, { config, lastFm, sessions }) => submitScrobbles(request, config, lastFm, sessions),
+  "POST /api/scrobbles": (request, { env, config, lastFm, sessions }) => submitScrobbles(request, config, lastFm, sessions, env.LIMITS),
   "GET /auth/login": (_request, { config }) => login(config),
   "GET /auth/callback": (request, { config, lastFm, sessions }) => callback(request, config, lastFm, sessions),
   "POST /auth/session": (request, { lastFm, sessions }) => exchange(request, lastFm, sessions),
@@ -47,6 +50,7 @@ export default {
 
     const handler = routes[`${request.method} ${path}`];
     const services = {
+      env,
       config,
       lastFm: new LastFmClient(config.lastFmApiKey, config.lastFmSharedSecret),
       sessions: new SessionCodec(config.sessionEncryptionKey),

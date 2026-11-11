@@ -10,6 +10,10 @@
     // Browser navigations (the Last.fm callback among them) would otherwise get the Web App page instead of the Worker.
     "run_worker_first": ["/api/*", "/api", "/auth/*", "/auth", "/health"]
   },
+  "durable_objects": {
+    "bindings": [{ "name": "LIMITS", "class_name": "AccountLimits" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AccountLimits"] }],
   "vars": {
     "EXTENSION_ID": "mnbkmonfmoloodikmopdlohjgdehfkep"
   },
@@ -20,6 +24,9 @@
         "binding": "ASSETS",
         "not_found_handling": "single-page-application",
         "run_worker_first": ["/api/*", "/api", "/auth/*", "/auth", "/health"]
+      },
+      "durable_objects": {
+        "bindings": [{ "name": "LIMITS", "class_name": "AccountLimits" }]
       }
     }
   }

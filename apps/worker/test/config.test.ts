@@ -4,7 +4,7 @@ import worker from "../src/index.ts";
 import { readConfig, type Env } from "../src/config.ts";
 
 const complete: Env = env as Env;
-const healthWith = (overrides: Partial<Record<Exclude<keyof Env, "ASSETS">, string | undefined>>) =>
+const healthWith = (overrides: Partial<Record<Exclude<keyof Env, "ASSETS" | "LIMITS">, string | undefined>>) =>
   worker.fetch(new Request("https://rescrobble.test/health"), { ...complete, ...overrides });
 
 describe("configuration", () => {
