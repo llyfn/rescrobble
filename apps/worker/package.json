@@ -1,0 +1,22 @@
+{
+  "name": "@rescrobble/worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8080",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@rescrobble/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.6.1",
+    "@cloudflare/workers-types": "5.20261110.1",
+    "@msw/cloudflare": "0.2.0",
+    "msw": "3.0.4",
+    "vitest": "5.1.0",
+    "wrangler": "4.159.0"
+  }
+}

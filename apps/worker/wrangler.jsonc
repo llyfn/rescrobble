@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "rescrobble",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "../web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Browser navigations (the Last.fm callback among them) would otherwise get the Web App page instead of the Worker.
+    "run_worker_first": ["/api/*", "/api", "/auth/*", "/auth", "/health"]
+  },
+  "vars": {
+    "EXTENSION_ID": "mnbkmonfmoloodikmopdlohjgdehfkep"
+  },
+  "env": {
+    "test": {
+      "assets": {
+        "directory": "test/web",
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": ["/api/*", "/api", "/auth/*", "/auth", "/health"]
+      }
+    }
+  }
+}
