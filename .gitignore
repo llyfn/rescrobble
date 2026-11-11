@@ -30,11 +30,6 @@ design/
 .scratch/
 .claude/
 
-# Gradle / Kotlin
-.gradle/
-.kotlin/
-build/
-
 # Node
 node_modules/
 dist/
