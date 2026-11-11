@@ -5,9 +5,10 @@ import "@rescrobble/ui/components.css";
 import "@rescrobble/scrobble-ui/scrobble-ui.css";
 import "./app.css";
 import { App } from "./App.tsx";
+import { Privacy } from "./Privacy.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    {window.location.pathname === "/privacy" ? <Privacy /> : <App />}
   </StrictMode>,
 );

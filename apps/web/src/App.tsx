@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AddScrobbles, ScrobbleTransportContext } from "@rescrobble/scrobble-ui";
 import { createApi, loadApiKey } from "./api.ts";
+import { Footer } from "./Footer.tsx";
 import { strings } from "./strings.ts";
 import { SignedOut } from "./SignedOut.tsx";
 
@@ -64,7 +65,7 @@ export function App() {
         {view.kind === "loading" && <main className="page" aria-busy="true" aria-label={strings.loading} />}
         {view.kind === "signedOut" && <SignedOut notice={view.notice} />}
         {view.kind === "signedIn" && <main className="page"><AddScrobbles /></main>}
-        <footer className="footer">{strings.footer}</footer>
+        <Footer />
       </div>
     </ScrobbleTransportContext>
   );
