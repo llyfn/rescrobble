@@ -15,7 +15,7 @@ export function SignedOut({ notice }: { notice?: string }) {
       <a className="rs-btn rs-btn--primary rs-btn--block" href="/auth/login">{s.logIn}</a>
       <p className="rs-hint">{s.privacy}</p>
       <p className="extension">
-        {s.extension} <span className="rs-label">{s.extensionStatus}</span>
+        {s.extension} <a href={s.extensionUrl} target="_blank" rel="noopener noreferrer">{s.extensionLink}</a>
       </p>
     </main>
   );

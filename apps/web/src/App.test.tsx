@@ -19,6 +19,12 @@ describe("signed out", () => {
     expect(screen.getByRole("link", { name: "Powered by AudioScrobbler" })).toHaveAttribute("href", "https://www.last.fm");
   });
 
+  it("links to the extension on the Chrome Web Store", async () => {
+    render(<App />);
+
+    expect(await screen.findByRole("link", { name: "Get the extension" })).toHaveAttribute("href", "https://chromewebstore.google.com/detail/pjeamaekcjcngmbldpkhanpmgnhjfboh");
+  });
+
   it("shows a notice after a failed sign-in and clears the flag from the URL", async () => {
     window.history.replaceState(null, "", "/?signIn=failed&tab=album");
 

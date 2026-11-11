@@ -2,7 +2,7 @@
 
 Curate your [Last.fm](https://www.last.fm) listening history: add plays that never got scrobbled, and fix or remove ones that were scrobbled wrong.
 
-> Not released yet.
+Use the [Web App](https://rescrobble.llyfn.workers.dev), or install the [browser extension](https://chromewebstore.google.com/detail/pjeamaekcjcngmbldpkhanpmgnhjfboh) from the Chrome Web Store.
 
 ## Features
 
