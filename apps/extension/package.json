@@ -1,11 +1,12 @@
 {
   "name": "@rescrobble/extension",
   "private": true,
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
     "build": "wxt build",
-    "zip": "wxt zip",
+    "zip": "WXT_BACKEND_ORIGIN=https://rescrobble.llyfn.workers.dev wxt zip",
     "postinstall": "wxt prepare",
     "typecheck": "tsc --noEmit",
     "test": "TZ=UTC vitest run"
