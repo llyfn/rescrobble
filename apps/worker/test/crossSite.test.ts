@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { browser, EXTENSION, sessionCookieOf, signInWithBearer, signInWithCookie, WEB_APP } from "./browser.ts";
-import { HOUR_AGO, useTestClock } from "./clock.ts";
+import { HOUR_AGO, freezeClock } from "./clock.ts";
 import { lastFm, lastFmJson, scrobblingLastFm, sessionJson } from "./lastfm.ts";
 
-useTestClock();
+freezeClock();
 const oneScrobble = { scrobbles: [{ artist: "Cher", track: "Believe", timestamp: HOUR_AGO }] };
 
 const ELSEWHERE = "https://evil.example";

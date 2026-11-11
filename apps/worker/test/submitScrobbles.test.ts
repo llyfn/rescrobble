@@ -3,10 +3,10 @@ import { http, HttpResponse } from "msw";
 import { checkTimestamp } from "@rescrobble/core";
 import fixture from "../../../fixtures/timestamp-rule-cases.json";
 import { browser, signInWithBearer, signInWithCookie } from "./browser.ts";
-import { HOUR_AGO, NOW, useTestClock } from "./clock.ts";
+import { HOUR_AGO, NOW, freezeClock } from "./clock.ts";
 import { lastFmDown, lastFmError, lastFmJson, network, scrobbleEntryJson, scrobblesJson, scrobblingLastFm } from "./lastfm.ts";
 
-const clock = useTestClock();
+const clock = freezeClock();
 const WINDOW = 14 * 24 * 60 * 60;
 
 type Entry = Record<string, unknown>;
