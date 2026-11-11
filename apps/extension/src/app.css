@@ -11,6 +11,8 @@ html, body, #root { height: 100%; }
 .placeholder { margin: 0; padding: var(--rs-space-5) var(--rs-space-6); font: var(--rs-text-heading); }
 .add-page { max-width: 560px; padding: var(--rs-space-6); }
 .history { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+.history[hidden] { display: none; }
+.sort-arrow { width: 10px; height: 10px; flex: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 .history .head { display: flex; align-items: baseline; gap: var(--rs-space-6); flex-wrap: wrap; padding: var(--rs-space-5) var(--rs-space-6) var(--rs-space-4); background: var(--rs-surface); border-bottom: var(--rs-hairline) solid var(--rs-line); }
 .history h1 { margin: 0; font: var(--rs-text-heading); }
 .history .sync { margin-left: auto; display: flex; align-items: center; gap: var(--rs-space-3); }

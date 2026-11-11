@@ -168,3 +168,22 @@ describe("selecting Scrobbles", () => {
     expect(screen.getAllByRole("checkbox", { name: /^Select Cher — Believe/ }).every((c) => !(c as HTMLInputElement).checked)).toBe(true);
   });
 });
+
+describe("leaving History", () => {
+  it("keeps the Filters, sort and selection after visiting another screen", async () => {
+    const { user } = await open();
+    const editor = await addFilter(user, { field: "artist", mode: "exact", value: "Radiohead" });
+    await user.click(editor.getByRole("button", { name: "Add filter" }));
+    await user.click(screen.getByRole("button", { name: "Track" }));
+    await user.click(screen.getByRole("checkbox", { name: /^Select Radiohead — Let Down/ }));
+
+    await user.click(screen.getByRole("link", { name: "Change log" }));
+    expect(screen.queryByRole("table", { name: "Scrobbles" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("link", { name: "History" }));
+
+    expect(screen.getByRole("button", { name: "Remove filter: Artist is “Radiohead”" })).toBeInTheDocument();
+    expect(fact("Matching")).toBe("3");
+    expect(fact("Selected")).toBe("1");
+    expect(screen.getByRole("columnheader", { name: "Track" })).toHaveAttribute("aria-sort", "ascending");
+  });
+});

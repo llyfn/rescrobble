@@ -52,11 +52,12 @@ interface HistoryProps {
   onSyncNow: () => void;
   jobs: Jobs;
   pro: boolean | null;
+  hidden: boolean;
 }
 
 type Panel = { mode: "build"; kind: "delete" | "edit"; targets: Scrobble[] } | { mode: "job"; id: string };
 
-export function History({ store, onSyncNow, jobs, pro }: HistoryProps) {
+export function History({ store, onSyncNow, jobs, pro, hidden }: HistoryProps) {
   const mirror = useMirror(store);
   const [sort, setSort] = useState<Sort>({ column: "played", descending: true });
   const [conditions, setConditions] = useState<Condition[]>([]);
@@ -129,14 +130,21 @@ export function History({ store, onSyncNow, jobs, pro }: HistoryProps) {
 
   const header = (column: Column, className?: string) => (
     <th className={className} aria-sort={sort.column === column ? (sort.descending ? "descending" : "ascending") : "none"}>
-      <button type="button" onClick={() => sortBy(column)}>{h.columns[column]}</button>
+      <button type="button" onClick={() => sortBy(column)}>
+        {h.columns[column]}
+        {sort.column === column && (
+          <svg className="sort-arrow" viewBox="0 0 10 10" aria-hidden="true">
+            <path d={sort.descending ? "M5 1.5v7M2 5.5l3 3 3-3" : "M5 8.5v-7M2 4.5l3-3 3 3"} />
+          </svg>
+        )}
+      </button>
     </th>
   );
 
   const selection = () => matches.filter((s) => selected.has(s.id));
 
   return (
-    <div className={panel ? "history with-preview" : "history"}>
+    <div className={panel ? "history with-preview" : "history"} hidden={hidden}>
       <div className="history-main">
         <div className="head">
           <h1>{h.heading}</h1>

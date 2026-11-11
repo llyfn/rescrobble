@@ -142,9 +142,8 @@ function Shell({ session, pro, transport, gateway, onSignOut }: ShellProps) {
         </div>
       </nav>
       <main className="work">
-        {screen === "history" && (
-          <History store={mirror.store} onSyncNow={mirror.syncNow} jobs={jobs} pro={pro} />
-        )}
+        {/* Kept mounted while hidden so its Filters, sort and selection survive a visit to another screen. */}
+        <History store={mirror.store} onSyncNow={mirror.syncNow} jobs={jobs} pro={pro} hidden={screen !== "history"} />
         {screen === "add" && (
           <ScrobbleTransportContext value={transport}>
             <div className="add-page"><AddScrobbles /></div>

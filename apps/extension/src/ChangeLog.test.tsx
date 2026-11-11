@@ -81,7 +81,7 @@ describe("the Change Log", () => {
       return HttpResponse.json({ results: body.scrobbles.map((e) => ({ status: "accepted", artist: e.artist, artistCorrected: false, track: e.track, trackCorrected: false })) });
     }));
     const { user } = await applyJob("delete", websiteWith(plays));
-    expect(fact("Scrobbles")).toBeUndefined();
+    expect(screen.queryByRole("table", { name: "Scrobbles" })).not.toBeInTheDocument();
 
     await user.click(entry(/^Deleted 3 scrobbles/).getByRole("button", { name: "Undo" }));
 
