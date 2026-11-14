@@ -53,6 +53,22 @@ export class MirrorDb {
     return request(this.db.transaction("scrobbles").objectStore("scrobbles").getAll());
   }
 
+  /** The newest Scrobbles first. */
+  async recent(limit: number): Promise<Scrobble[]> {
+    const index = this.db.transaction("scrobbles").objectStore("scrobbles").index("timestamp");
+    const found: Scrobble[] = [];
+    return new Promise((resolve, reject) => {
+      const req = index.openCursor(null, "prev");
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (!cursor || found.length >= limit) return resolve(found);
+        found.push(cursor.value as Scrobble);
+        cursor.continue();
+      };
+    });
+  }
+
   /** Stores Scrobbles and the sync state in one transaction, so a page is never half-recorded. */
   async putPage(scrobbles: Scrobble[], state: SyncState): Promise<void> {
     const tx = this.db.transaction(["scrobbles", "meta"], "readwrite");

@@ -1,0 +1,32 @@
+/* The toolbar popup. Browsers cap a popup at 800×600 and size it to its content. */
+body { width: 360px; margin: 0; }
+.popup { min-height: 120px; background: var(--rs-bg); }
+.popup__bar { display: flex; align-items: center; gap: var(--rs-space-3); min-height: 44px; padding: 0 var(--rs-space-2) 0 var(--rs-space-4); background: var(--rs-shell); color: var(--rs-shell-ink-2); }
+.popup__bar .rs-rail__brand { padding: 0; margin-right: auto; }
+.popup__bar .account { font: var(--rs-text-small); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.popup__bar .rs-btn--quiet { color: var(--rs-shell-ink); padding: 0 var(--rs-space-2); }
+.popup__bar .rs-btn--quiet:hover { border-color: var(--rs-shell-line); }
+.popup__bar :focus-visible { outline-color: var(--rs-shell-ink); outline-offset: -2px; }
+.popup .rs-tabs { background: var(--rs-surface); padding: 0 var(--rs-space-2); }
+.popup__body { padding: var(--rs-space-4); }
+.popup .add-scrobbles { --rs-control: 32px; }
+.popup .add-form { gap: var(--rs-space-3); }
+.popup .session h2 { margin: var(--rs-space-5) 0 var(--rs-space-2); }
+.popup__more { margin: var(--rs-space-4) 0 0; }
+.popup__sign-in { display: grid; gap: var(--rs-space-3); }
+.popup__sign-in h1 { margin: 0; font: var(--rs-text-title); }
+.popup__sign-in p { margin: 0; }
+.popup__job { display: flex; align-items: center; justify-content: space-between; gap: var(--rs-space-3); padding: var(--rs-space-2) var(--rs-space-4); font: var(--rs-text-small); background: var(--rs-surface); border-bottom: var(--rs-hairline) solid var(--rs-line); }
+.popup__job.rs-notice { display: grid; justify-content: stretch; border-width: 0 0 var(--rs-hairline); }
+.popup__empty { padding: var(--rs-space-8) var(--rs-space-4); }
+.popup__empty p { margin: 0 0 var(--rs-space-4); }
+.popup__recent { display: grid; gap: var(--rs-space-3); }
+.popup__recent .rs-hint { margin: 0; }
+.popup__scrobbles { margin: 0; padding: 0; list-style: none; border-top: var(--rs-hairline) solid var(--rs-line); background: var(--rs-surface); }
+.popup__scrobbles li { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: var(--rs-space-3); align-items: baseline; min-height: 32px; padding: var(--rs-space-1) var(--rs-space-2); border-bottom: var(--rs-hairline) solid var(--rs-line-soft); font: var(--rs-text-data); }
+.popup__scrobbles time { color: var(--rs-ink-2); white-space: nowrap; }
+.popup__scrobbles .what { display: flex; gap: var(--rs-space-2); min-width: 0; }
+.popup__scrobbles .track { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.popup__scrobbles .artist { flex: 1 1 0; min-width: 4em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--rs-ink-2); }
+.popup .link { all: unset; cursor: pointer; text-decoration: underline; color: var(--rs-ink); font-weight: 600; }
+.popup .link:focus-visible { outline: 2px solid var(--rs-ink); outline-offset: 2px; }

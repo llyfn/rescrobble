@@ -99,6 +99,24 @@ describe("the shell", () => {
     expect(screen.getByRole("heading", { name: "Change log" })).toBeInTheDocument();
   });
 
+  it("opens on the screen named in the URL hash", async () => {
+    window.history.replaceState(null, "", "/#jobs");
+
+    await renderSignedIn();
+
+    expect(screen.getByRole("link", { name: "Jobs" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("follows the URL hash when the popup opens another screen", async () => {
+    const { user } = await renderSignedIn();
+    await user.click(screen.getByRole("link", { name: "Change log" }));
+
+    window.location.hash = "#settings";
+
+    expect(await screen.findByRole("heading", { name: "Settings" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("aria-current", "page");
+  });
+
   it("credits AudioScrobbler in the rail with a link back to Last.fm", async () => {
     await renderSignedIn();
 

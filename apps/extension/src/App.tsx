@@ -29,6 +29,11 @@ const screenLabels: Record<Screen, string> = {
   settings: strings.nav.settings,
 };
 
+function screenFromHash(): Screen {
+  const name = window.location.hash.slice(1);
+  return (screens as string[]).includes(name) ? (name as Screen) : "history";
+}
+
 export function App({ gateway: providedGateway }: { gateway?: WebsiteGateway } = {}) {
   const [gateway] = useState<WebsiteGateway>(() => providedGateway ?? new TabGateway());
   const [view, setView] = useState<View>({ kind: "loading" });
@@ -107,7 +112,12 @@ interface ShellProps {
 }
 
 function Shell({ session, pro, transport, gateway, onSignOut }: ShellProps) {
-  const [screen, setScreen] = useState<Screen>("history");
+  const [screen, setScreen] = useState<Screen>(screenFromHash);
+  useEffect(() => {
+    const follow = () => setScreen(screenFromHash());
+    window.addEventListener("hashchange", follow);
+    return () => window.removeEventListener("hashchange", follow);
+  }, []);
   const mirror = useMirrorSync(session.username);
   const jobs = useJobs(gateway, session.username, (job, entry) => {
     if (job.kind === "delete") return void mirror.remove([entry.target.id]);
@@ -130,6 +140,8 @@ function Shell({ session, pro, transport, gateway, onSignOut }: ShellProps) {
             onClick={(e) => {
               e.preventDefault();
               setScreen(name);
+              // Kept in step so the popup's next "open this screen" is a hash change the tab hears.
+              window.history.replaceState(null, "", `#${name}`);
             }}
           >
             {screenLabels[name]}
