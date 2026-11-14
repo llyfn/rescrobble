@@ -131,16 +131,11 @@ a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; 
 .rs-topbar .rs-btn--quiet { color: var(--rs-shell-ink); min-height: 32px; padding: 0 var(--rs-space-2); }
 .rs-topbar .rs-btn--quiet:hover { border-color: var(--rs-shell-line); }
 
-/* Attribution: the "Powered by AudioScrobbler" button Last.fm's API terms require, linking back to Last.fm */
-.rs-attribution {
-  display: inline-flex; align-items: center; min-height: 24px; padding: 2px var(--rs-space-2);
-  font: var(--rs-text-small); color: var(--rs-ink-2); text-decoration: none; text-wrap: balance;
-  border: var(--rs-hairline) solid var(--rs-line-strong); border-radius: var(--rs-radius);
-  transition: color 120ms, border-color 120ms;
-}
-.rs-attribution:hover { color: var(--rs-ink); border-color: var(--rs-ink-2); }
-.rs-rail .rs-attribution { width: min-content; color: var(--rs-shell-ink-2); border-color: var(--rs-shell-line); }
-.rs-rail .rs-attribution:hover { color: var(--rs-shell-ink); border-color: var(--rs-shell-ink-2); }
+/* Attribution: the "Powered by AudioScrobbler" link Last.fm's API terms require, back to Last.fm */
+.rs-attribution { font: var(--rs-text-small); color: inherit; white-space: nowrap; }
+.rs-attribution:hover { color: var(--rs-ink); }
+.rs-rail .rs-attribution { font-size: 0.6875rem; }
+.rs-rail .rs-attribution:hover { color: var(--rs-shell-ink); }
 
 /* Key facts: a release header's facts line, set at reading size */
 .rs-facts { display: flex; flex-wrap: wrap; gap: var(--rs-space-1) var(--rs-space-8); margin: 0; }
